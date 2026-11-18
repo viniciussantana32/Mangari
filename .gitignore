@@ -12,3 +12,10 @@ venv/
 !/storage/manga/
 /storage/manga/*
 !/storage/manga/.gitkeep
+
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+instance/
+*.db

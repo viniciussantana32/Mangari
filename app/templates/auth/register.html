@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Criar Conta | Mangari{% endblock %}
+
+{% block content %}
+<section class="auth-form-wrap">
+    <form method="POST" class="auth-form">
+        {{ form.hidden_tag() }}
+        <h2>Criar Conta</h2>
+        <div>
+            <label for="name">Nome completo</label>
+            {{ form.name(placeholder="Seu nome") }}
+        </div>
+        <div>
+            <label for="email">E-mail</label>
+            {{ form.email(placeholder="seu@email.com") }}
+        </div>
+        <div>
+            <label for="password">Senha</label>
+            {{ form.password(placeholder="Pelo menos 6 caracteres") }}
+        </div>
+        <div>
+            <label for="confirm_password">Confirmar senha</label>
+            {{ form.confirm_password(placeholder="Repita sua senha") }}
+        </div>
+        <button type="submit" class="button primary">Cadastrar</button>
+        <p style="text-align: center; font-size: 0.9rem; color: var(--color-muted); margin-top: 0.5rem;">
+            Já possui uma conta? <a href="{{ url_for('auth.login') }}" style="color: var(--color-orange);">Fazer login</a>
+        </p>
+    </form>
+</section>
+{% endblock %}

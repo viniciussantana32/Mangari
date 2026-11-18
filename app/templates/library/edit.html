@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Editar Entrada da Biblioteca | Mangari{% endblock %}
+
+{% block content %}
+<section class="auth-form-wrap">
+    <form method="POST" class="auth-form">
+        <h2>Editar Mangá na Biblioteca</h2>
+        <label>Status de leitura</label>
+        <select name="reading_status">
+            <option value="Want to Read" {% if entry.reading_status == 'Want to Read' %}selected{% endif %}>Quero Ler (Want to Read)</option>
+            <option value="Reading" {% if entry.reading_status == 'Reading' %}selected{% endif %}>Lendo (Reading)</option>
+            <option value="Completed" {% if entry.reading_status == 'Completed' %}selected{% endif %}>Concluído (Completed)</option>
+            <option value="Paused" {% if entry.reading_status == 'Paused' %}selected{% endif %}>Pausado (Paused)</option>
+            <option value="Dropped" {% if entry.reading_status == 'Dropped' %}selected{% endif %}>Abandonado (Dropped)</option>
+        </select>
+        <label>Capítulo atual</label>
+        <input type="number" name="current_chapter" value="{{ entry.current_chapter }}">
+        <label>Nota pessoal (0 a 10)</label>
+        <input type="number" step="0.1" min="0" max="10" name="personal_rating" value="{{ entry.personal_rating }}">
+        <button type="submit" class="button primary">Salvar Alterações</button>
+    </form>
+</section>
+{% endblock %}

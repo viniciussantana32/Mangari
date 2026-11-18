@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Importar capítulo · Mangari{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+{% endblock %}
+{% block content %}
+<section class="reader-import-panel">
+    <a class="reader-back" href="{{ url_for('reader.manage') }}">← Gerenciar capítulos</a>
+    <p class="eyebrow">Somente conteúdo autorizado</p>
+    <h1>Importar capítulo local</h1>
+    <p>O Mangari aceita arquivos ZIP/CBZ com páginas JPG, PNG ou WEBP. O arquivo fica fora da pasta pública e cada página só é entregue após autenticação.</p>
+    
+    <form method="POST" enctype="multipart/form-data" class="reader-import-form">
+        {{ form.hidden_tag() }}
+        
+        <label for="manga_id">
+            <span>Obra / Mangá Cadastrado *</span>
+            {% if mangas %}
+                <select name="manga_id" id="manga_id" required>
+                    <option value="" disabled {% if not selected_manga_id and not selected_anilist_id and not form.manga_id.data and not form.anilist_id.data %}selected{% endif %}>
+                        Selecione um mangá cadastrado no catálogo...
+                    </option>
+                    {% for m in mangas %}
+                        <option value="{{ m.id }}" data-anilist-id="{{ m.anilist_id or '' }}"
+                            {% if (selected_manga_id and selected_manga_id == m.id) or (selected_anilist_id and m.anilist_id and selected_anilist_id == m.anilist_id) or (form.manga_id.data and form.manga_id.data == m.id) or (form.anilist_id.data and m.anilist_id and form.anilist_id.data == m.anilist_id) %}selected{% endif %}>
+                            {{ m.title }}{% if m.anilist_id %} (AniList ID: {{ m.anilist_id }}){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <!-- Campo anilist_id mantido oculto e sincronizado para compatibilidade -->
+                <input type="hidden" name="anilist_id" id="hidden_anilist_id" value="{{ form.anilist_id.data or selected_anilist_id or '' }}">
+            {% else %}
+                <select name="manga_id" id="manga_id" disabled>
+                    <option selected disabled>Nenhum mangá cadastrado no catálogo</option>
+                </select>
+                <div style="margin-top: 0.35rem; font-size: 0.88rem; color: var(--color-yellow);">
+                    ⚠️ Nenhum mangá cadastrado no catálogo. 
+                    <a href="{{ url_for('admin.mangas_list') }}" style="color: var(--color-orange); font-weight: 700; text-decoration: underline;">
+                        Cadastre uma obra no painel administrativo
+                    </a> antes de importar capítulos.
+                </div>
+            {% endif %}
+        </label>
+        {% for error in form.anilist_id.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+        {% for error in form.manga_id.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+
+        <label>{{ form.chapter_number.label }}{{ form.chapter_number(step='0.001') }}</label>
+        {% for error in form.chapter_number.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+
+        <label>{{ form.chapter_title.label }}{{ form.chapter_title }}</label>
+        {% for error in form.chapter_title.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+
+        <label>{{ form.volume_number.label }}{{ form.volume_number(step='0.001') }}</label>
+        {% for error in form.volume_number.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+
+        <label>{{ form.archive.label }}{{ form.archive(accept='.zip,.cbz') }}</label>
+        {% for error in form.archive.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+
+        <label class="reader-authorization">{{ form.authorization_confirmed }} {{ form.authorization_confirmed.label.text }}</label>
+        {% for error in form.authorization_confirmed.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+
+        {{ form.submit(class_='button primary') }}
+    </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mangaSelect = document.getElementById('manga_id');
+    const anilistInput = document.getElementById('hidden_anilist_id');
+    if (mangaSelect && anilistInput) {
+        function syncAnilistId() {
+            const opt = mangaSelect.options[mangaSelect.selectedIndex];
+            if (opt && opt.dataset.anilistId) {
+                anilistInput.value = opt.dataset.anilistId;
+            }
+        }
+        mangaSelect.addEventListener('change', syncAnilistId);
+        syncAnilistId();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Novo Capítulo PDF{% endblock %}
+{% block page_title %}Upload de Capítulo em PDF{% endblock %}
+
+{% block content %}
+<div style="max-width: 860px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3>Upload e Metadados do Capítulo</h3>
+            <a href="{{ url_for('admin.chapters_list') }}" class="btn btn-secondary btn-sm">Voltar à lista</a>
+        </div>
+        <p style="color: var(--admin-muted); font-size: 0.88rem; margin-top: 0; margin-bottom: 1.75rem;">
+            O arquivo PDF será verificado (assinatura mágica, integridade, limites e contagem de páginas) e armazenado com segurança fora do diretório público.
+        </p>
+
+        <form method="POST" action="{{ url_for('admin.chapter_new') }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <!-- Seleção de Obra e AniList ID -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.manga_id.label }}</label>
+                    {{ form.manga_id(class="form-control", id="select-manga") }}
+                    {% for error in form.manga_id.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.anilist_id.label }} *</label>
+                    {{ form.anilist_id(class="form-control", id="input-anilist-id", placeholder="Ex: 30002") }}
+                    <small style="color: var(--admin-muted); margin-top: 0.35rem;">ID correspondente na AniList.</small>
+                    {% for error in form.anilist_id.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <!-- Número, Volume e Status com amplo espaçamento -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.chapter_number.label }} *</label>
+                    {{ form.chapter_number(class="form-control", placeholder="Ex: 1 ou 10.5") }}
+                    {% for error in form.chapter_number.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.volume_number.label }}</label>
+                    {{ form.volume_number(class="form-control", placeholder="Ex: 1 (opcional)") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.status.label }}</label>
+                    {{ form.status(class="form-control") }}
+                </div>
+            </div>
+
+            <!-- Título do Capítulo -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label">{{ form.chapter_title.label }}</label>
+                {{ form.chapter_title(class="form-control", placeholder="Ex: O Início da Jornada (opcional)") }}
+            </div>
+
+            <!-- Caixa de Upload do PDF -->
+            <div class="form-group" style="background: var(--admin-surface); padding: 1.5rem; border-radius: 8px; border: 1px dashed rgba(255, 117, 24, 0.4); margin-bottom: 1.5rem;">
+                <label class="form-label" style="margin-bottom: 0.5rem; font-size: 0.95rem;">{{ form.pdf_file.label }} *</label>
+                {{ form.pdf_file(class="form-control", accept=".pdf", style="padding: 0.6rem;") }}
+                <small style="color: var(--admin-muted); display: block; margin-top: 0.65rem; font-size: 0.85rem;">
+                    Selecione um arquivo PDF válido. O sistema calcula automaticamente o número de páginas e armazena com nome seguro.
+                </small>
+                {% for error in form.pdf_file.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.35rem;">{{ error }}</div>{% endfor %}
+            </div>
+
+            <!-- Termos e Visibilidade -->
+            <div style="margin: 1.75rem 0; padding: 1.25rem 1.5rem; background: var(--admin-surface); border-radius: 8px; border: 1px solid var(--admin-border);">
+                <div class="form-check" style="margin-bottom: 1rem;">
+                    {{ form.is_available(class="form-check-input", id="field-is-available") }}
+                    <label class="form-check-label" for="field-is-available" style="font-weight: 600;">{{ form.is_available.label.text }}</label>
+                </div>
+
+                <div class="form-check" style="align-items: flex-start;">
+                    {{ form.authorization_confirmed(class="form-check-input", id="field-auth-confirmed", style="margin-top: 0.25rem;") }}
+                    <label class="form-check-label" for="field-auth-confirmed" style="color: var(--admin-yellow); font-size: 0.88rem; line-height: 1.45;">
+                        {{ form.authorization_confirmed.label.text }}
+                    </label>
+                </div>
+                {% for error in form.authorization_confirmed.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.35rem;">{{ error }}</div>{% endfor %}
+            </div>
+
+            <!-- Ações -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <a href="{{ url_for('admin.chapters_list') }}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar</a>
+                {{ form.submit(class="btn btn-primary", style="padding: 0.75rem 1.75rem;") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('select-manga').addEventListener('change', function() {
+    const val = this.value;
+    if (val && val !== '0') {
+        const text = this.options[this.selectedIndex].text;
+        const match = text.match(/AniList:\s*(\d+)/);
+        if (match && match[1]) {
+            document.getElementById('input-anilist-id').value = match[1];
+        }
+    }
+});
+</script>
+{% endblock %}

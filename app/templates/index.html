@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Mangari - Descubra seu próximo mangá{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <!-- Camada de Fundo Dinâmico com Artwork Desfocada -->
+    {% if featured_carousel %}
+        <div class="hero-backdrop" id="heroBackdrop">
+            {% for item in featured_carousel %}
+                <div class="hero-backdrop-item {% if loop.first %}active{% endif %} {% if item.is_cover_fallback %}is-fallback{% endif %}" data-backdrop-index="{{ loop.index0 }}">
+                    {% if item.banner_url %}
+                        <img src="{{ item.banner_url }}" alt="" class="hero-backdrop-img {% if item.is_cover_fallback %}cover-fallback-img{% endif %}" style="object-position: {{ item.banner_position or 'center' }} center;" aria-hidden="true">
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div class="hero-backdrop-overlay" aria-hidden="true"></div>
+        </div>
+    {% endif %}
+
+    <div class="hero-copy">
+        <p class="eyebrow">Descubra. Leia. Colecione.</p>
+        <h1>Acompanhe as histórias que você ama.</h1>
+        <p>Encontre mangás via AniList, organize sua biblioteca pessoal e acompanhe seu progresso de leitura em um só lugar.</p>
+        <div class="cta-row">
+            <a class="button primary" href="{{ url_for('manga.catalog') }}">Explorar catálogo</a>
+            {% if current_user.is_authenticated %}
+                <a class="button secondary" href="{{ url_for('library.list_library') }}">Minha biblioteca</a>
+            {% else %}
+                <a class="button secondary" href="{{ url_for('auth.register') }}">Criar conta</a>
+            {% endif %}
+        </div>
+    </div>
+    {% if featured_carousel %}
+        <div class="hero-carousel-container" id="heroCarousel">
+            <div class="hero-carousel-slides">
+                {% for item in featured_carousel %}
+                    <article class="hero-carousel-slide {% if loop.first %}active{% endif %}" data-slide-index="{{ loop.index0 }}">
+                        <a class="hero-feature hero-carousel-card {% if not item.cover_url %}image-failed{% endif %}" href="{{ url_for('manga.detail', manga_id=item.id) }}">
+                            {% if item.cover_url %}
+                                <img src="{{ item.cover_url }}" alt="Capa de {{ item.title }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+                            {% endif %}
+                            <span class="cover-fallback" aria-hidden="true">Cover unavailable</span>
+                            <div class="hero-badge">{{ item.badge }}</div>
+                            <div class="hero-feature-caption">
+                                <div class="hero-caption-meta">
+                                    {% if item.score %}
+                                        <span class="hero-rating"><span class="star">★</span> {{ item.score }}/10</span>
+                                    {% endif %}
+                                </div>
+                                <strong>{{ item.title }}</strong>
+                                <p class="hero-synopsis">{{ item.synopsis }}</p>
+                                <span class="hero-cta-pill">Ver detalhes →</span>
+                            </div>
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+
+            {% if featured_carousel|length > 1 %}
+                <!-- Setas de navegação do carrossel -->
+                <button type="button" class="carousel-arrow carousel-arrow-prev" aria-label="Slide anterior" id="carouselPrevBtn">‹</button>
+                <button type="button" class="carousel-arrow carousel-arrow-next" aria-label="Próximo slide" id="carouselNextBtn">›</button>
+
+                <!-- Indicadores do carrossel -->
+                <div class="carousel-indicators" role="tablist">
+                    {% for item in featured_carousel %}
+                        <button type="button" class="carousel-dot {% if loop.first %}active{% endif %}" aria-label="Ir para destaque {{ loop.index }}" data-index="{{ loop.index0 }}"></button>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="hero-feature hero-feature-empty">
+            <span class="cover-fallback">Capa em destaque indisponível</span>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Barra horizontal de Navegação rápida por Gêneros -->
+<section class="genre-navigation-section" aria-labelledby="genres-heading">
+    <div class="genre-navigation-header">
+        <p class="eyebrow">Categorias em destaque</p>
+        <h2 id="genres-heading">Explorar por gênero</h2>
+    </div>
+    <div class="genre-pills-wrapper">
+        <a href="{{ url_for('manga.catalog') }}" class="genre-pill active">
+            Todos
+        </a>
+        {% for g in genre_list %}
+            <a href="{{ url_for('manga.catalog', genre=g.slug) }}" class="genre-pill">
+                {{ g.label }}
+            </a>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="content-section" aria-labelledby="popular-heading">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Favoritos da comunidade</p>
+            <h2 id="popular-heading">Mangás populares</h2>
+        </div>
+        <a class="text-link" href="{{ url_for('manga.catalog') }}">Ver catálogo completo <span aria-hidden="true">→</span></a>
+    </div>
+    {% if popular_error %}
+        <p class="section-message">Os títulos populares estão temporariamente indisponíveis. Tente novamente mais tarde.</p>
+    {% else %}
+        <div class="home-card-grid">
+            {% for item in popular_manga %}
+                {% include 'manga/_card.html' %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+<section class="content-section" aria-labelledby="recent-heading">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Lançamentos recentes</p>
+            <h2 id="recent-heading">Novas publicações</h2>
+        </div>
+        <a class="text-link" href="{{ url_for('manga.catalog') }}">Buscar mais títulos <span aria-hidden="true">→</span></a>
+    </div>
+    {% if recent_error %}
+        <p class="section-message">Os lançamentos recentes estão temporariamente indisponíveis. Tente novamente mais tarde.</p>
+    {% else %}
+        <div class="home-card-grid">
+            {% for item in recent_manga %}
+                {% set recent = true %}
+                {% include 'manga/_card.html' %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

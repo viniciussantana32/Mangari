@@ -1,0 +1,201 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard Geral{% endblock %}
+
+{% block content %}
+<!-- Metric Cards -->
+<div class="admin-stats-grid">
+    <div class="admin-stat-card">
+        <div class="admin-stat-label">Mangás Locais</div>
+        <div class="admin-stat-value">{{ total_mangas }}</div>
+        <div class="admin-stat-desc">Obras no banco de dados</div>
+    </div>
+
+    <div class="admin-stat-card">
+        <div class="admin-stat-label">Capítulos Locais</div>
+        <div class="admin-stat-value">{{ total_chapters }}</div>
+        <div class="admin-stat-desc">Capítulos armazenados</div>
+    </div>
+
+    <div class="admin-stat-card">
+        <div class="admin-stat-label">Usuários</div>
+        <div class="admin-stat-value">{{ total_users }}</div>
+        <div class="admin-stat-desc">Cadastros no sistema</div>
+    </div>
+
+    <div class="admin-stat-card">
+        <div class="admin-stat-label">Comentários</div>
+        <div class="admin-stat-value">{{ total_comments }}</div>
+        <div class="admin-stat-desc">Total na plataforma</div>
+    </div>
+
+    <div class="admin-stat-card">
+        <div class="admin-stat-label">Moderação</div>
+        <div class="admin-stat-value" style="color: {% if pending_comments > 0 %}var(--admin-yellow){% else %}var(--admin-text){% endif %};">
+            {{ pending_comments }}
+        </div>
+        <div class="admin-stat-desc">Comentários pendentes</div>
+    </div>
+
+    <div class="admin-stat-card">
+        <div class="admin-stat-label">Denúncias</div>
+        <div class="admin-stat-value" style="color: {% if pending_reports > 0 %}var(--admin-danger){% else %}var(--admin-text){% endif %};">
+            {{ pending_reports }}
+        </div>
+        <div class="admin-stat-desc">Denúncias aguardando</div>
+    </div>
+</div>
+
+<!-- Two columns: Recent Mangas & Recent Users -->
+<div class="admin-grid-2">
+    <!-- Últimos mangás -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3>Últimos Mangás Adicionados</h3>
+            <a href="{{ url_for('admin.mangas_list') }}" class="btn btn-secondary btn-sm">Ver todos</a>
+        </div>
+        <div class="admin-table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Capa</th>
+                        <th>Título</th>
+                        <th>Capítulos</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in recent_mangas %}
+                        <tr>
+                            <td>
+                                {% if m.cover_image %}
+                                    <img src="{{ m.cover_image }}" alt="{{ m.title }}" class="admin-thumb">
+                                {% else %}
+                                    <div class="admin-thumb" style="display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--admin-muted); text-align: center;">Sem capa</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin.manga_edit', manga_id=m.id) }}" style="color: var(--admin-text); font-weight: 600; text-decoration: none;">
+                                    {{ m.title }}
+                                </a>
+                                {% if m.is_featured %}
+                                    <span class="badge badge-info" style="margin-left: 0.35rem; font-size: 0.65rem;">Destaque</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ m.chapters|length }} cap.</td>
+                            <td style="color: var(--admin-muted); font-size: 0.8rem;">
+                                {{ m.created_at.strftime('%d/%m/%Y') }}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--admin-muted); padding: 1.5rem;">
+                                Nenhum mangá cadastrado localmente ainda.
+                                <div style="margin-top: 0.5rem;">
+                                    <a href="{{ url_for('admin.manga_new') }}" class="btn btn-primary btn-sm">+ Cadastrar Mangá</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Últimos usuários -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3>Últimos Usuários Cadastrados</h3>
+            <a href="{{ url_for('admin.users_list') }}" class="btn btn-secondary btn-sm">Ver todos</a>
+        </div>
+        <div class="admin-table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Papel</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in recent_users %}
+                        <tr>
+                            <td style="font-weight: 600;">
+                                <a href="{{ url_for('admin.user_edit', user_id=u.id) }}" style="color: inherit; text-decoration: none;">
+                                    {{ u.name }}
+                                </a>
+                            </td>
+                            <td style="color: var(--admin-muted); font-size: 0.85rem;">{{ u.email }}</td>
+                            <td>
+                                {% if u.is_admin %}
+                                    <span class="badge badge-info">Admin</span>
+                                {% else %}
+                                    <span class="badge badge-muted">User</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.is_active %}
+                                    <span class="badge badge-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge badge-danger">Bloqueado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--admin-muted);">Nenhum usuário encontrado.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Atividades Recentes (Admin Logs) -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3>Atividades Administrativas Recentes</h3>
+        <a href="{{ url_for('admin.logs_list') }}" class="btn btn-secondary btn-sm">Ver histórico completo</a>
+    </div>
+    <div class="admin-table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Administrador</th>
+                    <th>Ação</th>
+                    <th>Entidade</th>
+                    <th>Descrição</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                    <tr>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem; white-space: nowrap;">
+                            {{ log.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td style="font-weight: 600;">
+                            {{ log.admin_user.name if log.admin_user else 'Sistema' }}
+                        </td>
+                        <td>
+                            <span class="badge badge-info" style="font-size: 0.7rem;">{{ log.action }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-muted" style="font-size: 0.7rem;">{{ log.entity_type }}</span>
+                        </td>
+                        <td style="color: #e4e4e7;">{{ log.description }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--admin-muted); padding: 1.5rem;">
+                            Nenhuma atividade administrativa registrada recentemente.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

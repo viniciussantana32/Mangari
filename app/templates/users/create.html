@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="auth-form-wrap">
+    <form method="POST" class="auth-form">
+        {{ form.hidden_tag() }}
+        <h2>Add user</h2>
+        {{ form.name.label }} {{ form.name }}
+        {{ form.email.label }} {{ form.email }}
+        {{ form.password.label }} {{ form.password }}
+        {{ form.confirm_password.label }} {{ form.confirm_password }}
+        {{ form.submit(class_='button primary') }}
+    </form>
+</section>
+{% endblock %}

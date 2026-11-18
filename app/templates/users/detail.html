@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ user.name }}</h1>
+    <div class="list-actions">
+        <a class="button secondary" href="{{ url_for('user.edit_user', user_id=user.id) }}">Edit</a>
+        <form method="POST" action="{{ url_for('user.delete_user', user_id=user.id) }}">
+            <button type="submit" class="button danger">Delete</button>
+        </form>
+    </div>
+</div>
+<p><strong>Email:</strong> {{ user.email }}</p>
+<p><strong>Admin:</strong> {{ 'Yes' if user.is_admin else 'No' }}</p>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Capítulos · {{ manga.title.english or manga.title.romaji or manga.title.native }} · Mangari{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+{% endblock %}
+{% block content %}
+<section class="reader-content">
+    <a class="reader-back" href="{{ url_for('manga.detail', manga_id=anilist_id) }}">← Voltar aos detalhes</a>
+    <header class="reader-heading">
+        {% set cover = manga.coverImage or {} %}
+        {% if cover.large %}
+            <img class="reader-manga-cover" src="{{ cover.large }}" alt="Capa de {{ manga.title.english or manga.title.romaji or manga.title.native }}">
+        {% endif %}
+        <div>
+            <p class="eyebrow">Mangari Reader</p>
+            <h1>{{ manga.title.english or manga.title.romaji or manga.title.native }}</h1>
+            <p>{{ chapters|length }} capítulo(s) armazenado(s) localmente.</p>
+        </div>
+    </header>
+    {% if not chapters %}
+        <div class="reader-empty-state">Ainda não existem capítulos autorizados armazenados para esta obra.</div>
+    {% else %}
+        <ol class="reader-chapter-list">
+            {% for chapter in chapters %}
+                {% set progress = progress_by_chapter.get(chapter.id) %}
+                <li class="reader-chapter-item">
+                    <a href="{{ url_for('reader.read_chapter', chapter_id=chapter.id) }}">
+                        <span class="reader-chapter-title">
+                            <strong>Capítulo {{ '%g'|format(chapter.chapter_number) }}</strong>
+                            {% if chapter.chapter_title %}<span>{{ chapter.chapter_title }}</span>{% endif %}
+                            {% if chapter.volume_number is not none %}<small>Volume {{ '%g'|format(chapter.volume_number) }}</small>{% endif %}
+                        </span>
+                        <span class="reader-chapter-meta">
+                            <span>{{ chapter.page_count }} páginas</span>
+                            {% if progress %}
+                                <span>{% if progress.is_completed %}Concluído{% else %}Página {{ progress.current_page }}{% endif %}</span>
+                            {% endif %}
+                        </span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ol>
+    {% endif %}
+</section>
+{% endblock %}

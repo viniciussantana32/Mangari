@@ -1,0 +1,720 @@
+/* ==========================================================================
+   Mangari Unified Chapter Reader (ZIP/CBZ & PDF.js)
+   Identidade Visual:
+   - Fundo principal: #0B0B0E
+   - Superfícies: #121216 / #19191F
+   - Bordas: #292930
+   - Texto: #F5F5F5 / Secundário: #A1A1AA
+   - Destaques: #FF7518 / #FF8C32 / #FFB627
+   ========================================================================== */
+
+/* Layout e Base do Leitor */
+body:has(.manga-reader) {
+    background-color: #0b0b0e !important;
+}
+
+body:has(.manga-reader) .site-header {
+    display: none; /* Leitor em tela imersiva sem header global */
+}
+
+body:has(.manga-reader) .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.manga-reader {
+    --reader-max-width: 850px;
+    --reader-bg: #0b0b0e;
+    --reader-surface: #121216;
+    --reader-card: #19191f;
+    --reader-border: #292930;
+    --reader-text: #f5f5f5;
+    --reader-muted: #a1a1aa;
+    --reader-orange: #ff7518;
+    --reader-orange-light: #ff8c32;
+    --reader-yellow: #ffb627;
+
+    position: relative;
+    min-height: 100vh;
+    background-color: var(--reader-bg);
+    color: var(--reader-text);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 4rem;
+}
+
+/* ==========================================================================
+   Barra de Progresso Fixa no Topo (#FF7518)
+   ========================================================================== */
+.reader-progress-track {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.reader-progress-track > span {
+    display: block;
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--reader-orange), var(--reader-orange-light));
+    transition: width 150ms ease-out;
+}
+
+/* ==========================================================================
+   Barra de Ferramentas Superior (Header Foco / Imersivo)
+   ========================================================================== */
+.reader-toolbar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    background: rgba(18, 18, 22, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--reader-border);
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0.65rem 1.25rem;
+    gap: 1rem;
+    transition: transform 300ms ease, opacity 250ms ease;
+    will-change: transform, opacity;
+}
+
+/* Estado Recolhido (Modo Foco / Imersão) */
+.reader-toolbar.reader-hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.reader-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.reader-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    background: var(--reader-card);
+    border: 1px solid var(--reader-border);
+    border-radius: 8px;
+    color: var(--reader-orange-light);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.reader-back-btn:hover {
+    background: #23232c;
+    border-color: var(--reader-orange);
+    color: var(--reader-yellow);
+}
+
+.reader-title-box {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.reader-manga-name {
+    font-size: 0.8rem;
+    color: var(--reader-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reader-chapter-name {
+    font-size: 0.95rem;
+    color: var(--reader-text);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reader-toolbar-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.reader-select-wrap {
+    position: relative;
+    max-width: 280px;
+}
+
+.reader-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--reader-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a1a1aa' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) center;
+    color: var(--reader-text);
+    border: 1px solid var(--reader-border);
+    border-radius: 8px;
+    padding: 0.45rem 2rem 0.45rem 0.85rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.reader-select:focus {
+    border-color: var(--reader-orange);
+    box-shadow: 0 0 0 2px rgba(255, 117, 24, 0.25);
+}
+
+.reader-select option {
+    background: #19191f;
+    color: #f5f5f5;
+    padding: 0.5rem;
+}
+
+.reader-toolbar-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.reader-control-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--reader-border);
+    background: var(--reader-card);
+    color: var(--reader-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.reader-control-btn:hover:not(.disabled) {
+    background: #23232c;
+    border-color: var(--reader-orange);
+    color: var(--reader-yellow);
+}
+
+.reader-control-btn.primary {
+    background: var(--reader-orange);
+    color: #0b0b0e;
+    border-color: var(--reader-orange-light);
+}
+
+.reader-control-btn.primary:hover:not(.disabled) {
+    background: var(--reader-orange-light);
+    color: #0b0b0e;
+    border-color: var(--reader-yellow);
+}
+
+.reader-control-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+    border-color: var(--reader-border);
+}
+
+/* ==========================================================================
+   Barra de Opções de Leitura (Modo, Contador, Largura, Fullscreen)
+   ========================================================================== */
+.reader-options-bar {
+    position: sticky;
+    top: 54px;
+    z-index: 850;
+    background: rgba(18, 18, 22, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--reader-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.45rem 1.25rem;
+    transition: transform 300ms ease, opacity 250ms ease;
+}
+
+.reader-options-bar.reader-hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.reader-mode-toggle,
+.reader-page-nav-wrap,
+.reader-view-actions,
+.reader-width-presets {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.reader-opt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0.3rem 0.65rem;
+    background: var(--reader-card);
+    border: 1px solid var(--reader-border);
+    border-radius: 6px;
+    color: var(--reader-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease;
+}
+
+.reader-opt-btn:hover {
+    color: var(--reader-text);
+    border-color: #3f3f4a;
+}
+
+.reader-opt-btn.active,
+.reader-opt-btn[aria-pressed="true"] {
+    background: rgba(255, 117, 24, 0.15);
+    border-color: var(--reader-orange);
+    color: var(--reader-orange);
+    font-weight: 700;
+}
+
+.reader-opt-btn.icon-btn {
+    min-width: 32px;
+    padding: 0.3rem 0.5rem;
+    font-weight: 700;
+}
+
+.reader-page-indicator {
+    font-size: 0.85rem;
+    color: var(--reader-muted);
+    font-weight: 600;
+    min-width: 110px;
+    text-align: center;
+    user-select: none;
+}
+
+.reader-status-msg {
+    min-height: 1.2rem;
+    margin: 0.35rem 0;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--reader-muted);
+    transition: opacity 200ms ease;
+}
+
+/* ==========================================================================
+   Área de Exibição das Páginas (ZIP/CBZ e Canvas PDF)
+   ========================================================================== */
+.reader-pages-container {
+    width: min(100%, var(--reader-max-width));
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    transition: width 200ms ease;
+}
+
+/* Preserva a classe .pdf-viewer-wrapper necessária pelos testes existentes */
+.pdf-viewer-wrapper {
+    min-height: 60vh;
+}
+
+.reader-page-item {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.reader-page-item img,
+.reader-page-item canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.reader-page-fallback {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 11, 14, 0.95);
+    display: none; /* Sempre oculto por padrão */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    color: var(--reader-text);
+    z-index: 5;
+}
+
+.reader-page-fallback[hidden],
+.reader-page-fallback.is-hidden {
+    display: none !important;
+}
+
+.reader-page-item.has-error .reader-page-fallback {
+    display: flex !important;
+}
+
+.reader-page-fallback p {
+    margin: 0;
+    color: var(--reader-muted);
+}
+
+/* ==========================================================================
+   Modo Página Única
+   ========================================================================== */
+.manga-reader.single-page-mode .reader-pages-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 180px);
+}
+
+.manga-reader.single-page-mode .reader-page-item {
+    width: auto;
+    max-width: min(100%, var(--reader-max-width));
+    cursor: pointer;
+}
+
+.manga-reader.single-page-mode .reader-page-item img,
+.manga-reader.single-page-mode .reader-page-item canvas {
+    max-height: calc(100vh - 160px);
+    width: auto;
+    max-width: 100%;
+}
+
+.manga-reader.single-page-mode .reader-page-item[hidden] {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Card de Fim de Capítulo
+   ========================================================================== */
+.chapter-end-card {
+    width: min(100% - 2rem, 640px);
+    margin: 2.5rem auto 1.5rem auto;
+    background: #19191f;
+    border: 1px solid #292930;
+    border-radius: 14px;
+    padding: 2rem 1.75rem;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.chapter-end-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(255, 117, 24, 0.15);
+    border: 1px solid rgba(255, 117, 24, 0.4);
+    border-radius: 999px;
+    color: var(--reader-orange);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.chapter-end-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    color: var(--reader-text);
+}
+
+.chapter-end-subtitle {
+    margin: 0 0 1.5rem 0;
+    color: var(--reader-muted);
+    font-size: 0.95rem;
+}
+
+.chapter-end-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.chapter-end-btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+}
+
+/* ==========================================================================
+   Rodapé do Leitor
+   ========================================================================== */
+.reader-bottom-nav {
+    width: min(100% - 2rem, var(--reader-max-width));
+    margin: 1.5rem auto 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--reader-border);
+    color: var(--reader-muted);
+    font-size: 0.85rem;
+}
+
+.reader-bottom-links {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.reader-bottom-links a {
+    color: var(--reader-orange-light);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.reader-bottom-links a:hover {
+    color: var(--reader-yellow);
+    text-decoration: underline;
+}
+
+.reader-save-hint {
+    color: var(--reader-muted);
+    font-size: 0.82rem;
+}
+
+/* ==========================================================================
+   Loading e Fallback do PDF
+   ========================================================================== */
+.pdf-loading-state,
+.pdf-fallback-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 4rem 1.5rem;
+    color: var(--reader-muted);
+    text-align: center;
+}
+
+.pdf-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(255, 117, 24, 0.2);
+    border-top-color: var(--reader-orange);
+    border-radius: 50%;
+    animation: reader-spin 0.8s linear infinite;
+}
+
+@keyframes reader-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   CSS das páginas anteriores (Gestão de Capítulos / Importação)
+   Preservado para não quebrar /reader/manage, /reader/import, etc.
+   ========================================================================== */
+.reader-content { width: min(100%, 980px); margin-inline: auto; }
+.reader-back { display: inline-block; margin-bottom: 1rem; color: var(--color-orange-light); font-weight: 700; text-decoration: none; }
+.reader-back:hover { color: var(--color-yellow); }
+.reader-heading { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 1.5rem; }
+.reader-manga-cover { width: 90px; max-height: 135px; border-radius: 10px; object-fit: cover; }
+.reader-heading h1 { margin: 0; }
+.reader-heading p:last-child { margin-bottom: 0; color: var(--color-muted); }
+.reader-empty-state, .reader-import-panel {
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.3rem;
+    background: var(--color-card);
+    color: var(--color-muted);
+}
+.reader-chapter-list { display: grid; gap: 0.65rem; margin: 0; padding: 0; list-style: none; }
+.reader-chapter-item > a, .reader-manage-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    background: var(--color-card);
+    text-decoration: none;
+    transition: border-color var(--transition, 180ms ease), transform var(--transition, 180ms ease);
+}
+.reader-chapter-item > a:hover { transform: translateY(-1px); border-color: var(--color-orange); }
+.reader-chapter-title, .reader-chapter-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.75rem; }
+.reader-chapter-title { flex-direction: column; align-items: flex-start; }
+.reader-chapter-title > span, .reader-chapter-title small, .reader-chapter-meta { color: var(--color-muted); font-size: 0.85rem; }
+.reader-chapter-meta { justify-content: flex-end; text-align: right; }
+
+.reader-manage-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
+.reader-manage-heading h1 { margin: 0; }
+.reader-manga-manage-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 0.9rem; }
+.reader-manga-manage-item { display: flex; min-width: 0; gap: 0.9rem; align-items: center; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.9rem; background: var(--color-card); }
+.reader-manga-manage-item > img, .reader-manga-cover-placeholder { width: 76px; height: 108px; flex: 0 0 76px; border-radius: 8px; object-fit: cover; background: var(--color-surface); }
+.reader-manga-cover-placeholder { display: grid; place-items: center; padding: 0.4rem; color: var(--color-muted); font-size: 0.7rem; text-align: center; }
+.reader-manga-manage-info { min-width: 0; }
+.reader-manga-manage-info h2 { margin: 0; font-size: 1rem; }
+.reader-manga-manage-info p { margin: 0.35rem 0; color: var(--color-muted); font-size: 0.85rem; }
+.reader-manga-manage-info small { display: block; margin-bottom: 0.5rem; color: var(--color-muted); }
+.reader-muted { color: var(--color-muted); }
+.reader-manage-list { display: grid; gap: 0.7rem; }
+.reader-manage-item > div { min-width: 0; }
+.reader-manage-item p { margin: 0.3rem 0; color: var(--color-muted); }
+.reader-manage-item small { color: var(--color-orange-light); }
+.reader-manage-item form { margin: 0; }
+.reader-admin-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.reader-admin-actions form { margin: 0; }
+.reader-delete { color: #ff9a9a !important; }
+
+.reader-import-panel { max-width: 700px; margin-inline: auto; }
+.reader-import-panel h1 { margin-block: 0.4rem; color: var(--color-text); }
+.reader-import-form { display: grid; gap: 0.8rem; margin-top: 1.4rem; }
+.reader-import-form > label:not(.reader-authorization) { display: grid; gap: 0.35rem; color: var(--color-text); }
+.reader-import-form input:not([type="checkbox"]),
+.reader-import-form select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    padding: 0.65rem 0.8rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 0.95rem;
+    transition: border-color var(--transition, 0.2s), box-shadow var(--transition, 0.2s);
+}
+.reader-import-form input:not([type="checkbox"]):focus,
+.reader-import-form select:focus {
+    outline: none;
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 3px rgba(255, 117, 24, 0.25);
+}
+.reader-import-form select option {
+    background: #19191f;
+    color: #f5f5f5;
+    padding: 0.5rem;
+}
+.reader-authorization { display: flex; align-items: flex-start; gap: 0.6rem; color: var(--color-muted); }
+.reader-authorization input { margin-top: 0.35rem; accent-color: var(--color-orange); }
+.reader-form-error { color: #ff9a9a; }
+
+/* ==========================================================================
+   Responsividade Mobile e Tablet
+   ========================================================================== */
+@media (max-width: 860px) {
+    .reader-toolbar {
+        grid-template-columns: 1fr auto;
+        padding: 0.5rem 0.75rem;
+        gap: 0.6rem;
+    }
+
+    .reader-toolbar-center {
+        grid-column: 1 / -1;
+        order: 3;
+        width: 100%;
+    }
+
+    .reader-select-wrap {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .reader-select {
+        width: 100%;
+    }
+
+    .reader-options-bar {
+        top: auto;
+        padding: 0.4rem 0.75rem;
+        justify-content: center;
+    }
+
+    .reader-mode-toggle,
+    .reader-page-nav-wrap,
+    .reader-view-actions {
+        width: auto;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .reader-title-box {
+        max-width: 150px;
+    }
+
+    .reader-chapter-name {
+        font-size: 0.85rem;
+    }
+
+    .reader-manga-name {
+        font-size: 0.75rem;
+    }
+
+    .reader-options-bar {
+        gap: 0.4rem;
+    }
+
+    .reader-page-indicator {
+        min-width: 85px;
+        font-size: 0.78rem;
+    }
+
+    .reader-opt-btn {
+        padding: 0.25rem 0.45rem;
+        font-size: 0.75rem;
+    }
+
+    .reader-width-presets {
+        display: none; /* Em telas muito pequenas o modo já é tela cheia/100% */
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reader-toolbar,
+    .reader-options-bar,
+    .reader-progress-track > span,
+    .reader-control-btn,
+    .reader-opt-btn {
+        transition: none !important;
+    }
+}

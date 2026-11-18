@@ -1,0 +1,180 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Catálogo de Mangás{% endblock %}
+{% block page_title %}Catálogo de Mangás{% endblock %}
+
+{% block content %}
+<!-- Barra de Ações e Filtros -->
+<div class="admin-filters">
+    <form method="GET" action="{{ url_for('admin.mangas_list') }}" class="admin-search-form">
+        <input type="text" name="q" value="{{ search or '' }}" placeholder="Buscar por título, autor ou gênero..." class="form-control" style="max-width: 300px;">
+
+        <select name="status" class="form-control" style="max-width: 160px;" onchange="this.form.submit()">
+            <option value="">Status (Todos)</option>
+            <option value="RELEASING" {% if status == 'RELEASING' %}selected{% endif %}>Em lançamento</option>
+            <option value="FINISHED" {% if status == 'FINISHED' %}selected{% endif %}>Finalizado</option>
+            <option value="HIATUS" {% if status == 'HIATUS' %}selected{% endif %}>Em hiato</option>
+            <option value="CANCELLED" {% if status == 'CANCELLED' %}selected{% endif %}>Cancelado</option>
+        </select>
+
+        <select name="visibility" class="form-control" style="max-width: 150px;" onchange="this.form.submit()">
+            <option value="">Visibilidade</option>
+            <option value="1" {% if visibility == '1' %}selected{% endif %}>Visíveis</option>
+            <option value="0" {% if visibility == '0' %}selected{% endif %}>Ocultos</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+        {% if search or status or visibility %}
+            <a href="{{ url_for('admin.mangas_list') }}" class="btn btn-secondary btn-sm" style="color: var(--admin-muted);">Limpar</a>
+        {% endif %}
+    </form>
+
+    <div style="display: flex; gap: 0.75rem;">
+        <form method="POST" action="{{ url_for('admin.mangas_batch_update_synopses_pt') }}" onsubmit="return confirm('Deseja buscar a sinopse em Português (MangaDex/Tradução) para todos os mangás do catálogo?');" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-secondary" title="Busca sinopses em português na MangaDex e Tradução para obras do catálogo">
+                🌐 Traduzir Sinopses Pendentes
+            </button>
+        </form>
+        <a href="{{ url_for('admin.manga_new') }}" class="btn btn-primary">
+            <span>+ Adicionar Mangá via AniList</span>
+        </a>
+    </div>
+</div>
+
+<!-- Tabela de Mangás -->
+<div class="admin-card">
+    <div class="admin-table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Capa</th>
+                    <th>Título / Autor</th>
+                    <th>ID AniList</th>
+                    <th>Status</th>
+                    <th>Capítulos</th>
+                    <th>Visibilidade</th>
+                    <th>Destaque</th>
+                    <th>Cadastro</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in pagination.items %}
+                    <tr>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem;">#{{ m.id }}</td>
+                        <td>
+                            {% if m.cover_image %}
+                                <img src="{{ m.cover_image }}" alt="{{ m.title }}" class="admin-thumb">
+                            {% else %}
+                                <div class="admin-thumb" style="display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--admin-muted); text-align: center;">Sem capa</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--admin-text);">
+                                {{ m.title }}
+                            </div>
+                            {% if m.author %}
+                                <div style="font-size: 0.78rem; color: var(--admin-muted);">{{ m.author }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if m.anilist_id %}
+                                <a href="https://anilist.co/manga/{{ m.anilist_id }}" target="_blank" style="color: var(--admin-yellow); font-size: 0.85rem; text-decoration: none;">
+                                    {{ m.anilist_id }} ↗
+                                </a>
+                            {% else %}
+                                <span style="color: var(--admin-muted); font-size: 0.85rem;">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if m.publication_status == 'FINISHED' %}badge-success{% else %}badge-info{% endif %}">
+                                {{ m.publication_status }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin.chapters_list', manga_id=m.id) }}" style="color: var(--admin-orange); font-weight: 600; text-decoration: none;">
+                                {{ m.chapters|length }} cap.
+                            </a>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.manga_toggle_visibility', manga_id=m.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="badge {% if m.is_visible %}badge-success{% else %}badge-muted{% endif %}" style="cursor: pointer; border: none;">
+                                    {% if m.is_visible %}Visível{% else %}Oculto{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.manga_toggle_featured', manga_id=m.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="badge {% if m.is_featured %}badge-warning{% else %}badge-muted{% endif %}" style="cursor: pointer; border: none;">
+                                    {% if m.is_featured %}★ Destaque{% else %}Comum{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem; white-space: nowrap;">
+                            {{ m.created_at.strftime('%d/%m/%Y') }}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            {% if m.anilist_id %}
+                                <a href="{{ url_for('manga.detail', manga_id=m.anilist_id) }}" class="btn btn-secondary btn-sm" target="_blank" title="Ver no site">
+                                    👁
+                                </a>
+                            {% endif %}
+                            <a href="{{ url_for('admin.chapter_new', manga_id=m.id) }}" class="btn btn-secondary btn-sm" title="Adicionar capítulo">
+                                + Cap
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.manga_update_synopsis_pt', manga_id=m.id) }}" style="display: inline;" title="Atualizar Sinopse (PT-BR) via MangaDex">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    🌐 PT
+                                </button>
+                            </form>
+                            <a href="{{ url_for('admin.manga_edit', manga_id=m.id) }}" class="btn btn-secondary btn-sm" title="Editar mangá">
+                                ✏️
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.manga_delete', manga_id=m.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir o mangá \'{{ m.title }}\'? Todos os capítulos vinculados também serão removidos.');" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Excluir mangá">
+                                    🗑️
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="10" style="text-align: center; color: var(--admin-muted); padding: 2.5rem;">
+                            Nenhum mangá encontrado com os filtros aplicados.
+                            <div style="margin-top: 1rem;">
+                                <a href="{{ url_for('admin.manga_new') }}" class="btn btn-primary">+ Cadastrar Primeiro Mangá</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if pagination.pages > 1 %}
+        <div class="admin-pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('admin.mangas_list', page=pagination.prev_num, q=search, status=status, visibility=visibility) }}" class="page-link">&laquo;</a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    <a href="{{ url_for('admin.mangas_list', page=p, q=search, status=status, visibility=visibility) }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+                {% else %}
+                    <span class="page-link" style="border: none; background: none;">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a href="{{ url_for('admin.mangas_list', page=pagination.next_num, q=search, status=status, visibility=visibility) }}" class="page-link">&raquo;</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

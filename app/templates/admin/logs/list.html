@@ -1,0 +1,93 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Registro de Atividades Administrativas{% endblock %}
+{% block page_title %}Logs de Atividades Administrativas{% endblock %}
+
+{% block content %}
+<div class="admin-filters">
+    <form method="GET" action="{{ url_for('admin.logs_list') }}" class="admin-search-form">
+        <input type="text" name="q" value="{{ search or '' }}" placeholder="Buscar por descrição ou ação..." class="form-control" style="max-width: 320px;">
+
+        <select name="entity" class="form-control" style="max-width: 180px;" onchange="this.form.submit()">
+            <option value="">Entidade (Todas)</option>
+            <option value="manga" {% if entity_type == 'manga' %}selected{% endif %}>Mangás</option>
+            <option value="chapter" {% if entity_type == 'chapter' %}selected{% endif %}>Capítulos</option>
+            <option value="user" {% if entity_type == 'user' %}selected{% endif %}>Usuários</option>
+            <option value="comment" {% if entity_type == 'comment' %}selected{% endif %}>Comentários</option>
+            <option value="comment_report" {% if entity_type == 'comment_report' %}selected{% endif %}>Denúncias</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+        {% if search or entity_type %}
+            <a href="{{ url_for('admin.logs_list') }}" class="btn btn-secondary btn-sm" style="color: var(--admin-muted);">Limpar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="admin-card">
+    <div class="admin-table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Data / Hora</th>
+                    <th>Administrador</th>
+                    <th>Ação Realizada</th>
+                    <th>Entidade</th>
+                    <th>ID Ref.</th>
+                    <th style="width: 50%;">Descrição Detalhada</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in pagination.items %}
+                    <tr>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem; white-space: nowrap;">
+                            {{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}
+                        </td>
+                        <td style="font-weight: 700; white-space: nowrap;">
+                            {{ log.admin_user.name if log.admin_user else 'Sistema' }}
+                        </td>
+                        <td>
+                            <span class="badge badge-info" style="font-size: 0.72rem;">{{ log.action }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-muted" style="font-size: 0.72rem;">{{ log.entity_type }}</span>
+                        </td>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem;">
+                            {{ ('#' ~ log.entity_id) if log.entity_id else '-' }}
+                        </td>
+                        <td style="color: #f5f5f5; line-height: 1.4;">
+                            {{ log.description }}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--admin-muted); padding: 2.5rem;">
+                            Nenhum log de atividade registrado.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if pagination.pages > 1 %}
+        <div class="admin-pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('admin.logs_list', page=pagination.prev_num, q=search, entity=entity_type) }}" class="page-link">&laquo;</a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    <a href="{{ url_for('admin.logs_list', page=p, q=search, entity=entity_type) }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+                {% else %}
+                    <span class="page-link" style="border: none; background: none;">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a href="{{ url_for('admin.logs_list', page=pagination.next_num, q=search, entity=entity_type) }}" class="page-link">&raquo;</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

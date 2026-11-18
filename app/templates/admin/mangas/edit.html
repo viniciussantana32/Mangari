@@ -1,0 +1,221 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Editar {{ manga.title }}{% endblock %}
+{% block page_title %}Editar Mangá: {{ manga.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3>Editar Dados Cadastrais</h3>
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{{ url_for('admin.chapters_list', manga_id=manga.id) }}" class="btn btn-secondary btn-sm">
+                    Gerenciar Capítulos ({{ manga.chapters|length }})
+                </a>
+                <a href="{{ url_for('admin.mangas_list') }}" class="btn btn-secondary btn-sm">Voltar à lista</a>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.manga_edit', manga_id=manga.id) }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <!-- Linha 1: Título Principal e ID AniList -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.title.label }} *</label>
+                    {{ form.title(class="form-control", id="field-title") }}
+                    {% for error in form.title.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.anilist_id.label }}</label>
+                    {{ form.anilist_id(class="form-control", id="field-anilist-id") }}
+                    {% for error in form.anilist_id.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <!-- Linha 2: Títulos Alternativos e Autor(es) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.alternative_titles.label }}</label>
+                    {{ form.alternative_titles(class="form-control") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.author.label }}</label>
+                    {{ form.author(class="form-control") }}
+                </div>
+            </div>
+
+            <!-- Linha 3: Status, Capítulos e Data de Início -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.publication_status.label }}</label>
+                    {{ form.publication_status(class="form-control") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.anilist_chapters.label }}</label>
+                    {{ form.anilist_chapters(class="form-control") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.start_date.label }}</label>
+                    {{ form.start_date(class="form-control") }}
+                </div>
+            </div>
+
+            <!-- Linha 4: URL da Capa e Gêneros -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.cover_image.label }}</label>
+                    {{ form.cover_image(class="form-control", id="field-cover") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.genres.label }}</label>
+                    {{ form.genres(class="form-control") }}
+                </div>
+            </div>
+
+            <!-- Linha 5: Sinopse -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label class="form-label" style="margin-bottom: 0;">{{ form.synopsis.label }}</label>
+                    <button type="button" id="btn-translate-synopsis" class="btn btn-secondary btn-sm" onclick="translateSynopsisInForm()" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.25rem 0.65rem;">
+                        <span id="translate-icon">🌐</span> Atualizar Sinopse (PT-BR)
+                    </button>
+                </div>
+                {{ form.synopsis(class="form-control", id="field-synopsis", rows=6) }}
+            </div>
+
+            <!-- Seção de Seleção de Banner de Fundo (Carrossel da Página Inicial) -->
+            {% include 'admin/mangas/_banner_selector.html' %}
+
+            <!-- Linha 6: Visibilidade e Destaque -->
+            <div style="display: flex; gap: 2.5rem; margin: 1.75rem 0; padding: 1.25rem 1.5rem; background: var(--admin-surface); border-radius: 8px; border: 1px solid var(--admin-border); align-items: center;">
+                <div class="form-check">
+                    {{ form.is_visible(class="form-check-input", id="edit-is-visible") }}
+                    <label class="form-check-label" for="edit-is-visible" style="font-weight: 600;">{{ form.is_visible.label.text }}</label>
+                </div>
+
+                <div class="form-check">
+                    {{ form.is_featured(class="form-check-input", id="edit-is-featured") }}
+                    <label class="form-check-label" for="edit-is-featured" style="font-weight: 600;">{{ form.is_featured.label.text }}</label>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+                <button type="button" class="btn btn-danger" onclick="if(confirm('Tem certeza que deseja excluir este mangá e todos os seus capítulos?')){ document.getElementById('delete-manga-form').submit(); }">
+                    Excluir Mangá
+                </button>
+
+                <div style="display: flex; gap: 1rem;">
+                    <a href="{{ url_for('admin.mangas_list') }}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar</a>
+                    {{ form.submit(class="btn btn-primary", style="padding: 0.75rem 1.75rem;") }}
+                </div>
+            </div>
+        </form>
+
+        <form id="delete-manga-form" method="POST" action="{{ url_for('admin.manga_delete', manga_id=manga.id) }}" style="display: none;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const existingBanner = {{ (manga.banner_image or '')|tojson }};
+    const existingCover = {{ (manga.cover_image or '')|tojson }};
+    const anilistId = {{ (manga.anilist_id or 0)|tojson }};
+
+    let officialBanner = existingBanner;
+    let coverUrl = existingCover;
+    let coverExtraLarge = existingCover;
+
+    if (anilistId) {
+        try {
+            const res = await fetch('/admin/mangas/api/anilist-details/' + anilistId);
+            const data = await res.json();
+            if (data.manga) {
+                const m = data.manga;
+                officialBanner = m.banner_image || '';
+                coverUrl = m.cover_image || existingCover;
+                coverExtraLarge = m.cover_image_extra_large || coverUrl;
+            }
+        } catch (e) {
+            console.warn('Não foi possível consultar AniList para opções do banner:', e);
+        }
+    }
+
+    if (typeof updateBannerCards === 'function') {
+        updateBannerCards(officialBanner, coverUrl, coverExtraLarge);
+
+        if (existingBanner) {
+            if (existingBanner === existingCover || existingBanner.includes('/cover/')) {
+                selectBannerMode('cover');
+            } else if (officialBanner && existingBanner === officialBanner) {
+                selectBannerMode('official');
+            } else {
+                const customInput = document.getElementById('custom-banner-url-input');
+                if (customInput) customInput.value = existingBanner;
+                onCustomBannerUrlInput(existingBanner);
+                selectBannerMode('custom');
+            }
+        } else if (existingCover) {
+            selectBannerMode('cover');
+        }
+    }
+});
+
+async function translateSynopsisInForm() {
+    const synopsisField = document.getElementById('field-synopsis');
+    const titleField = document.getElementById('field-title');
+    const btn = document.getElementById('btn-translate-synopsis');
+    const icon = document.getElementById('translate-icon');
+    if (!synopsisField || !synopsisField.value.trim()) {
+        alert('Digite ou importe uma sinopse antes de solicitar a busca/tradução.');
+        return;
+    }
+
+    const originalText = synopsisField.value;
+    const title = titleField ? titleField.value.trim() : '';
+    const originalBtnText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Buscando MangaDex / Traduzindo...';
+
+    try {
+        const response = await fetch('/admin/mangas/api/translate-text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+            },
+            body: JSON.stringify({ text: originalText, title: title })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.translated) {
+            synopsisField.value = data.translated;
+            btn.innerHTML = '<span>✅</span> Sinopse Atualizada!';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+            }, 2500);
+        } else {
+            alert('Não foi possível obter a sinopse em português: ' + (data.error || 'Erro desconhecido'));
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    } catch (err) {
+        console.error('Erro ao atualizar sinopse:', err);
+        alert('Erro de conexão ao solicitar a sinopse.');
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+    }
+}
+</script>
+{% endblock %}

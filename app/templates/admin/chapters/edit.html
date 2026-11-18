@@ -1,0 +1,89 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Editar Capítulo {{ chapter.chapter_number }}{% endblock %}
+{% block page_title %}Editar Capítulo: #{{ chapter.chapter_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 860px; margin: 0 auto;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3>Metadados e Arquivo do Capítulo</h3>
+            <a href="{{ url_for('admin.chapters_list') }}" class="btn btn-secondary btn-sm">Voltar à lista</a>
+        </div>
+
+        <div style="background: var(--admin-surface); padding: 1.25rem 1.5rem; border-radius: 8px; border: 1px solid var(--admin-border); margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span style="color: var(--admin-muted); font-size: 0.85rem;">Obra Vinculada:</span>
+                <strong style="color: var(--admin-text); margin-left: 0.35rem; font-size: 0.95rem;">
+                    {{ chapter.manga.title if chapter.manga else ('AniList ID #' ~ chapter.anilist_id) }}
+                </strong>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--admin-muted);">
+                Formato: <strong style="color: var(--admin-orange);">{{ chapter.file_type|upper }}</strong> •
+                Páginas: <strong style="color: var(--admin-text);">{{ chapter.page_count }}</strong>
+                {% if chapter.file_size %}
+                    • Tamanho: <strong style="color: var(--admin-text);">{{ (chapter.file_size / (1024*1024))|round(2) }} MB</strong>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.chapter_edit', chapter_id=chapter.id) }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.chapter_number.label }} *</label>
+                    {{ form.chapter_number(class="form-control") }}
+                    {% for error in form.chapter_number.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.volume_number.label }}</label>
+                    {{ form.volume_number(class="form-control") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.status.label }}</label>
+                    {{ form.status(class="form-control") }}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label">{{ form.chapter_title.label }}</label>
+                {{ form.chapter_title(class="form-control", placeholder="Título do capítulo (opcional)") }}
+            </div>
+
+            <div class="form-group" style="background: var(--admin-surface); padding: 1.5rem; border-radius: 8px; border: 1px dashed var(--admin-border); margin-bottom: 1.5rem;">
+                <label class="form-label" style="margin-bottom: 0.5rem; font-size: 0.95rem;">{{ form.pdf_file.label }}</label>
+                {{ form.pdf_file(class="form-control", accept=".pdf", style="padding: 0.6rem;") }}
+                <small style="color: var(--admin-muted); display: block; margin-top: 0.65rem; font-size: 0.85rem;">
+                    Arquivo atual: <code>{{ chapter.original_filename or chapter.folder_path }}</code>.
+                    Envie um novo PDF somente se desejar substituir o arquivo existente.
+                </small>
+                {% for error in form.pdf_file.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.35rem;">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div style="margin: 1.75rem 0; padding: 1.25rem 1.5rem; background: var(--admin-surface); border-radius: 8px; border: 1px solid var(--admin-border);">
+                <div class="form-check">
+                    {{ form.is_available(class="form-check-input", id="edit-is-available") }}
+                    <label class="form-check-label" for="edit-is-available" style="font-weight: 600;">{{ form.is_available.label.text }}</label>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+                <button type="button" class="btn btn-danger" onclick="if(confirm('Tem certeza que deseja excluir este capítulo e seus arquivos do disco?')){ document.getElementById('delete-chapter-form').submit(); }">
+                    Excluir Capítulo
+                </button>
+
+                <div style="display: flex; gap: 1rem;">
+                    <a href="{{ url_for('admin.chapters_list') }}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar</a>
+                    {{ form.submit(class="btn btn-primary", style="padding: 0.75rem 1.75rem;") }}
+                </div>
+            </div>
+        </form>
+
+        <form id="delete-chapter-form" method="POST" action="{{ url_for('admin.chapter_delete', chapter_id=chapter.id) }}" style="display: none;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Editar capítulo · Mangari{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+{% endblock %}
+{% block content %}
+<section class="reader-import-panel">
+    <a class="reader-back" href="{{ url_for('reader.manage_manga_chapters', anilist_id=chapter.anilist_id) }}">← Voltar aos capítulos</a>
+    <p class="eyebrow">AniList {{ chapter.anilist_id }}</p>
+    <h1>Editar capítulo {{ '%g'|format(chapter.chapter_number) }}</h1>
+    <form method="POST" class="reader-import-form">
+        {{ form.hidden_tag() }}
+        <label>{{ form.chapter_title.label }}{{ form.chapter_title }}</label>
+        {% for error in form.chapter_title.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+        <label>{{ form.volume_number.label }}{{ form.volume_number(step='0.001', min='0') }}</label>
+        {% for error in form.volume_number.errors %}<small class="reader-form-error">{{ error }}</small>{% endfor %}
+        <label class="reader-authorization">{{ form.is_available }} {{ form.is_available.label.text }}</label>
+        {{ form.submit(class_='button primary') }}
+    </form>
+</section>
+{% endblock %}

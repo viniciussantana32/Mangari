@@ -1,0 +1,139 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Moderação de Comentários{% endblock %}
+{% block page_title %}Comentários e Moderação{% endblock %}
+
+{% block content %}
+<div class="admin-filters">
+    <form method="GET" action="{{ url_for('admin.comments_list') }}" class="admin-search-form">
+        <input type="text" name="q" value="{{ search or '' }}" placeholder="Buscar palavras no comentário..." class="form-control" style="max-width: 340px;">
+
+        <select name="status" class="form-control" style="max-width: 170px;" onchange="this.form.submit()">
+            <option value="">Status (Todos)</option>
+            <option value="published" {% if status == 'published' %}selected{% endif %}>Publicados</option>
+            <option value="hidden" {% if status == 'hidden' %}selected{% endif %}>Ocultos</option>
+            <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pendentes</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+        {% if search or status %}
+            <a href="{{ url_for('admin.comments_list') }}" class="btn btn-secondary btn-sm" style="color: var(--admin-muted);">Limpar</a>
+        {% endif %}
+    </form>
+
+    <div>
+        <a href="{{ url_for('admin.reports_list') }}" class="btn btn-secondary">
+            <span>🚨 Ver Denúncias</span>
+        </a>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuário</th>
+                    <th>Mangá / Obra</th>
+                    <th style="width: 40%;">Comentário</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in pagination.items %}
+                    <tr>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem;">#{{ c.id }}</td>
+                        <td style="font-weight: 600; white-space: nowrap;">
+                            {{ c.user.name if c.user else 'Usuário Removido' }}
+                        </td>
+                        <td style="white-space: nowrap;">
+                            {% if c.manga %}
+                                <a href="{{ url_for('manga.detail', manga_id=c.anilist_id) }}" target="_blank" style="color: var(--admin-orange); text-decoration: none;">
+                                    {{ c.manga.title }}
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('manga.detail', manga_id=c.anilist_id) }}" target="_blank" style="color: var(--admin-yellow); text-decoration: none;">
+                                    AniList #{{ c.anilist_id }}
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td style="color: #e4e4e7; line-height: 1.4;">
+                            {{ c.content }}
+                            {% if c.reports|length > 0 %}
+                                <span class="badge badge-danger" style="margin-left: 0.5rem; font-size: 0.65rem;">
+                                    {{ c.reports|length }} denúncia(s)
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if c.status == 'published' %}
+                                <span class="badge badge-success">Publicado</span>
+                            {% elif c.status == 'hidden' %}
+                                <span class="badge badge-danger">Oculto</span>
+                            {% else %}
+                                <span class="badge badge-warning">Pendente</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem; white-space: nowrap;">
+                            {{ c.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            {% if c.status == 'published' %}
+                                <form method="POST" action="{{ url_for('admin.comment_hide', comment_id=c.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Ocultar do público">
+                                        👁️ Ocultar
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('admin.comment_restore', comment_id=c.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Restaurar para o público">
+                                        ✓ Restaurar
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            <form method="POST" action="{{ url_for('admin.comment_delete', comment_id=c.id) }}" onsubmit="return confirm('Excluir este comentário permanentemente?');" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Excluir">
+                                    🗑️
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--admin-muted); padding: 2.5rem;">
+                            Nenhum comentário encontrado.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if pagination.pages > 1 %}
+        <div class="admin-pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('admin.comments_list', page=pagination.prev_num, q=search, status=status) }}" class="page-link">&laquo;</a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    <a href="{{ url_for('admin.comments_list', page=p, q=search, status=status) }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+                {% else %}
+                    <span class="page-link" style="border: none; background: none;">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a href="{{ url_for('admin.comments_list', page=pagination.next_num, q=search, status=status) }}" class="page-link">&raquo;</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

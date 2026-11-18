@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Catálogo de Mangás | Mangari{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Catálogo de Mangás</h1>
+</div>
+<form class="search-bar" method="GET" action="{{ url_for('manga.catalog') }}">
+    <input type="text" name="q" value="{{ query }}" placeholder="Buscar por título de mangá...">
+    {% if selected_genre %}
+        <input type="hidden" name="genre" value="{{ selected_genre }}">
+    {% endif %}
+    <button type="submit" class="button secondary">Buscar</button>
+</form>
+
+<!-- Filtro rápido de gêneros no catálogo -->
+<div class="genre-pills-wrapper catalog-genre-filter">
+    <a href="{{ url_for('manga.catalog', q=query if query else None) }}" class="genre-pill {% if not selected_genre %}active{% endif %}">
+        Todos
+    </a>
+    {% for g in genre_list %}
+        <a href="{{ url_for('manga.catalog', genre=g.slug, q=query if query else None) }}" class="genre-pill {% if selected_genre == g.slug %}active{% endif %}">
+            {{ g.label }}
+        </a>
+    {% endfor %}
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">O catálogo da AniList está temporariamente indisponível. Tente novamente mais tarde.</div>
+{% elif not results and not local_mangas %}
+    <p class="section-message">{% if query %}Nenhum resultado encontrado para “{{ query }}”.{% else %}Nenhum mangá retornado no momento.{% endif %}</p>
+{% endif %}
+
+<div class="card-grid">
+    {% for item in results %}
+        {% include 'manga/_card.html' %}
+    {% endfor %}
+</div>
+{% endblock %}

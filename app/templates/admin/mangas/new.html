@@ -1,0 +1,302 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Adicionar Mangá via AniList{% endblock %}
+{% block page_title %}Cadastrar Mangá no Catálogo{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+    <!-- Card de Busca AniList -->
+    <div class="admin-card" style="margin-bottom: 2rem; border-color: rgba(255, 117, 24, 0.35);">
+        <div class="admin-card-header">
+            <h3>1. Buscar Obra na AniList API</h3>
+            <span style="font-size: 0.8rem; color: var(--admin-yellow); font-weight: 600;">Integração Oficial AniList GraphQL</span>
+        </div>
+        <p style="color: var(--admin-muted); font-size: 0.9rem; margin-top: 0; line-height: 1.5;">
+            Digite o nome do mangá para pesquisar na AniList. Ao selecionar uma obra, todos os dados serão importados para o formulário abaixo com espaçamento e clareza para edição.
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+            <input type="text" id="anilist-search-input" placeholder="Ex: Berserk, One Piece, Chainsaw Man..." class="form-control" style="flex: 1;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); searchAniList(); }">
+            <button type="button" class="btn btn-primary" onclick="searchAniList()" style="padding: 0.75rem 1.5rem;">
+                <span id="search-spinner" style="display: none;">⏳ </span>Buscar
+            </button>
+        </div>
+
+        <!-- Resultados da Busca -->
+        <div id="anilist-results-container" style="display: none; max-height: 400px; overflow-y: auto; padding-right: 0.5rem; margin-top: 1rem;">
+            <div id="anilist-results-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem;">
+                <!-- Preenchido via JavaScript -->
+            </div>
+        </div>
+        <div id="anilist-search-status" style="display: none; color: var(--admin-muted); font-size: 0.9rem; text-align: center; padding: 1rem;"></div>
+    </div>
+
+    <!-- Formulário de Cadastro do Mangá -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3>2. Dados do Mangá no Banco Local</h3>
+            <a href="{{ url_for('admin.mangas_list') }}" class="btn btn-secondary btn-sm">Voltar à lista</a>
+        </div>
+        <p style="color: var(--admin-muted); font-size: 0.88rem; margin-top: 0; margin-bottom: 1.75rem;">
+            Revise ou edite qualquer campo antes de salvar o registro no banco de dados.
+        </p>
+
+        <form method="POST" action="{{ url_for('admin.manga_new') }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <!-- Linha 1: Título Principal e ID AniList -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.title.label }} *</label>
+                    {{ form.title(class="form-control", id="field-title", placeholder="Título principal da obra") }}
+                    {% for error in form.title.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.anilist_id.label }}</label>
+                    {{ form.anilist_id(class="form-control", id="field-anilist-id", placeholder="Ex: 30002") }}
+                    {% for error in form.anilist_id.errors %}<div style="color: var(--admin-danger); font-size: 0.8rem; margin-top: 0.25rem;">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <!-- Linha 2: Títulos Alternativos e Autor(es) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.alternative_titles.label }}</label>
+                    {{ form.alternative_titles(class="form-control", id="field-alt-titles", placeholder="Títulos em inglês, japonês ou variantes") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.author.label }}</label>
+                    {{ form.author(class="form-control", id="field-author", placeholder="Autor / Roteirista / Ilustrador") }}
+                </div>
+            </div>
+
+            <!-- Linha 3: Status, Capítulos e Data de Início com amplo espaçamento -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.publication_status.label }}</label>
+                    {{ form.publication_status(class="form-control", id="field-status") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.anilist_chapters.label }}</label>
+                    {{ form.anilist_chapters(class="form-control", id="field-chapters", placeholder="Total de capítulos") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.start_date.label }}</label>
+                    {{ form.start_date(class="form-control", id="field-start-date", placeholder="AAAA-MM-DD") }}
+                </div>
+            </div>
+
+            <!-- Linha 4: URL da Capa e Gêneros -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 0.5rem;">
+                <div class="form-group">
+                    <label class="form-label">{{ form.cover_image.label }}</label>
+                    {{ form.cover_image(class="form-control", id="field-cover", placeholder="https://...") }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ form.genres.label }}</label>
+                    {{ form.genres(class="form-control", id="field-genres", placeholder="Ação, Aventura, Fantasia...") }}
+                </div>
+            </div>
+
+            <!-- Linha 5: Sinopse Completa -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label class="form-label" style="margin-bottom: 0;">{{ form.synopsis.label }}</label>
+                    <button type="button" id="btn-translate-synopsis" class="btn btn-secondary btn-sm" onclick="translateSynopsisInForm()" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.25rem 0.65rem;">
+                        <span id="translate-icon">🌐</span> Atualizar Sinopse (PT-BR)
+                    </button>
+                </div>
+                {{ form.synopsis(class="form-control", id="field-synopsis", rows=6, placeholder="Sinopse detalhada da obra...") }}
+            </div>
+
+            <!-- Seção de Seleção de Banner de Fundo (Carrossel da Página Inicial) -->
+            {% include 'admin/mangas/_banner_selector.html' %}
+
+            <!-- Linha 6: Opções de Visibilidade e Destaque -->
+            <div style="display: flex; gap: 2.5rem; margin: 1.75rem 0; padding: 1.25rem 1.5rem; background: var(--admin-surface); border-radius: 8px; border: 1px solid var(--admin-border); align-items: center;">
+                <div class="form-check">
+                    {{ form.is_visible(class="form-check-input", id="field-is-visible") }}
+                    <label class="form-check-label" for="field-is-visible" style="font-weight: 600;">{{ form.is_visible.label.text }}</label>
+                </div>
+
+                <div class="form-check">
+                    {{ form.is_featured(class="form-check-input", id="field-is-featured") }}
+                    <label class="form-check-label" for="field-is-featured" style="font-weight: 600;">{{ form.is_featured.label.text }}</label>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <a href="{{ url_for('admin.mangas_list') }}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancelar</a>
+                {{ form.submit(class="btn btn-primary", style="padding: 0.75rem 1.75rem;") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function searchAniList() {
+    const input = document.getElementById('anilist-search-input');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const spinner = document.getElementById('search-spinner');
+    const status = document.getElementById('anilist-search-status');
+    const container = document.getElementById('anilist-results-container');
+    const grid = document.getElementById('anilist-results-grid');
+
+    spinner.style.display = 'inline';
+    status.style.display = 'block';
+    status.innerText = 'Buscando mangás na AniList...';
+    grid.innerHTML = '';
+    container.style.display = 'none';
+
+    try {
+        const res = await fetch('/admin/mangas/api/search-anilist?q=' + encodeURIComponent(query));
+        const data = await res.json();
+        spinner.style.display = 'none';
+
+        if (data.error) {
+            status.innerText = 'Erro: ' + data.error;
+            return;
+        }
+
+        if (!data.results || data.results.length === 0) {
+            status.innerText = 'Nenhuma obra encontrada na AniList para "' + query + '".';
+            return;
+        }
+
+        status.style.display = 'none';
+        container.style.display = 'block';
+
+        data.results.forEach(manga => {
+            const card = document.createElement('div');
+            card.style = 'background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 0.85rem; display: flex; gap: 0.85rem; align-items: center; cursor: pointer; transition: all 0.15s ease;';
+            card.onmouseenter = () => card.style.borderColor = 'var(--admin-orange)';
+            card.onmouseleave = () => card.style.borderColor = 'var(--admin-border)';
+
+            card.innerHTML = `
+                <img src="${manga.cover || ''}" style="width: 52px; height: 74px; object-fit: cover; border-radius: 6px; background: #000; flex-shrink: 0;">
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 700; font-size: 0.92rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${manga.title}</div>
+                    <div style="font-size: 0.78rem; color: var(--admin-muted); margin-top: 0.25rem;">ID: ${manga.id} • ${manga.status}</div>
+                    <button type="button" class="btn btn-primary btn-sm" style="margin-top: 0.5rem; padding: 0.3rem 0.7rem; font-size: 0.78rem;" onclick="selectAniListManga(${manga.id})">
+                        Selecionar
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    } catch (err) {
+        spinner.style.display = 'none';
+        status.innerText = 'Falha na conexão com a API da AniList.';
+    }
+}
+
+async function selectAniListManga(anilistId) {
+    const status = document.getElementById('anilist-search-status');
+    status.style.display = 'block';
+    status.innerText = 'Carregando detalhes da obra selecionada...';
+
+    try {
+        const res = await fetch('/admin/mangas/api/anilist-details/' + anilistId);
+        const data = await res.json();
+        status.style.display = 'none';
+
+        if (data.manga) {
+            const m = data.manga;
+            document.getElementById('field-title').value = m.title || '';
+            document.getElementById('field-alt-titles').value = m.alternative_titles || '';
+            document.getElementById('field-synopsis').value = m.synopsis || '';
+            document.getElementById('field-anilist-id').value = m.anilist_id || '';
+            document.getElementById('field-cover').value = m.cover_image || '';
+            document.getElementById('field-genres').value = m.genres || '';
+            document.getElementById('field-author').value = m.author || '';
+            if (m.publication_status) {
+                document.getElementById('field-status').value = m.publication_status;
+            }
+            if (m.anilist_chapters) {
+                document.getElementById('field-chapters').value = m.anilist_chapters;
+            }
+            if (m.start_date) {
+                document.getElementById('field-start-date').value = m.start_date;
+            }
+
+            // Atualiza os cards de seleção de banner e a pré-visualização em tempo real
+            if (typeof updateBannerCards === 'function') {
+                updateBannerCards(
+                    m.banner_image || '',
+                    m.cover_image || '',
+                    m.cover_image_extra_large || m.cover_image || ''
+                );
+            }
+
+            document.getElementById('field-title').scrollIntoView({ behavior: 'smooth' });
+        }
+    } catch (err) {
+        status.innerText = 'Falha ao carregar detalhes completos da AniList.';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const initialCover = document.getElementById('field-cover') ? document.getElementById('field-cover').value.trim() : '';
+    const initialBanner = document.getElementById('field-banner-image') ? document.getElementById('field-banner-image').value.trim() : '';
+    if ((initialCover || initialBanner) && typeof updateBannerCards === 'function') {
+        updateBannerCards(initialBanner, initialCover, initialCover);
+    }
+});
+
+async function translateSynopsisInForm() {
+    const synopsisField = document.getElementById('field-synopsis');
+    const titleField = document.getElementById('field-title');
+    const btn = document.getElementById('btn-translate-synopsis');
+    if (!synopsisField || !synopsisField.value.trim()) {
+        alert('Digite ou importe uma sinopse antes de solicitar a busca/tradução.');
+        return;
+    }
+
+    const originalText = synopsisField.value;
+    const title = titleField ? titleField.value.trim() : '';
+    const originalBtnText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Buscando MangaDex / Traduzindo...';
+
+    try {
+        const response = await fetch('/admin/mangas/api/translate-text', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+            },
+            body: JSON.stringify({ text: originalText, title: title })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.translated) {
+            synopsisField.value = data.translated;
+            btn.innerHTML = '<span>✅</span> Sinopse Atualizada!';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+            }, 2500);
+        } else {
+            alert('Não foi possível obter a sinopse em português: ' + (data.error || 'Erro desconhecido'));
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    } catch (err) {
+        console.error('Erro ao atualizar sinopse:', err);
+        alert('Erro de conexão ao solicitar a sinopse.');
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+    }
+}
+</script>
+{% endblock %}

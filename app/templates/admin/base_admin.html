@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Painel Administrativo{% endblock %} | Mangari</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="admin-body">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+        <div class="admin-sidebar-header">
+            <a href="{{ url_for('admin.dashboard') }}" class="admin-logo">
+                Mangari
+                <span class="admin-logo-badge">Admin</span>
+            </a>
+        </div>
+
+        <nav class="admin-nav">
+            <a href="{{ url_for('admin.dashboard') }}" class="admin-nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                <span class="icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('admin.mangas_list') }}" class="admin-nav-item {% if 'manga' in request.endpoint %}active{% endif %}">
+                <span class="icon">📚</span>
+                <span>Catálogo de Mangás</span>
+            </a>
+            <a href="{{ url_for('admin.chapters_list') }}" class="admin-nav-item {% if 'chapter' in request.endpoint %}active{% endif %}">
+                <span class="icon">📑</span>
+                <span>Capítulos e PDFs</span>
+            </a>
+            <a href="{{ url_for('admin.users_list') }}" class="admin-nav-item {% if 'user' in request.endpoint and 'admin' in request.endpoint %}active{% endif %}">
+                <span class="icon">👥</span>
+                <span>Usuários</span>
+            </a>
+            <a href="{{ url_for('admin.comments_list') }}" class="admin-nav-item {% if request.endpoint == 'admin.comments_list' %}active{% endif %}">
+                <span class="icon">💬</span>
+                <span>Comentários</span>
+            </a>
+            <a href="{{ url_for('admin.reports_list') }}" class="admin-nav-item {% if request.endpoint == 'admin.reports_list' %}active{% endif %}">
+                <span class="icon">🚨</span>
+                <span>Denúncias</span>
+            </a>
+            <a href="{{ url_for('admin.admin_reports') }}" class="admin-nav-item {% if 'admin_reports' in request.endpoint or ('reports' in request.endpoint and request.endpoint != 'admin.reports_list') %}active{% endif %}">
+                <span class="icon">📈</span>
+                <span>Relatórios</span>
+            </a>
+            <a href="{{ url_for('admin.logs_list') }}" class="admin-nav-item {% if request.endpoint == 'admin.logs_list' %}active{% endif %}">
+                <span class="icon">📜</span>
+                <span>Atividades</span>
+            </a>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+            <a href="{{ url_for('main.index') }}" class="admin-nav-item" style="color: var(--admin-orange);">
+                <span class="icon">🌐</span>
+                <span>Voltar ao Mangari</span>
+            </a>
+            <a href="{{ url_for('auth.logout') }}" class="admin-nav-item" style="color: var(--admin-danger);">
+                <span class="icon">🚪</span>
+                <span>Sair da Conta</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Container -->
+    <div class="admin-main">
+        <!-- Top Header -->
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button type="button" class="admin-mobile-toggle" id="admin-sidebar-toggle" aria-label="Abrir menu">
+                    ☰
+                </button>
+                <div class="admin-header-title">
+                    <h2>{% block page_title %}Painel Administrativo{% endblock %}</h2>
+                </div>
+            </div>
+
+            <div class="admin-header-user">
+                <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-sm" target="_blank">
+                    <span>Acessar Site ↗</span>
+                </a>
+                <div class="admin-user-info">
+                    <span class="admin-user-name">{{ current_user.name }}</span>
+                    <span class="admin-user-role">Administrador</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <main class="admin-content">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="admin-flash-container">
+                        {% for category, message in messages %}
+                            <div class="admin-alert admin-alert-{{ category }}">
+                                <span>{{ message }}</span>
+                                <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.1rem;">×</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

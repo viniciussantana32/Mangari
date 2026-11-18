@@ -1,0 +1,28 @@
+<article class="manga-card">
+    <a class="cover-frame" href="{{ url_for('manga.detail', manga_id=item.id) }}" aria-label="Ver {{ item.title.romaji or item.title.english or item.title.native }}">
+        {% set cover = item.coverImage or {} %}
+        {% set cover_url = cover.extraLarge or cover.large %}
+        {% if cover_url %}
+            <img src="{{ cover_url }}" alt="Capa de {{ item.title.romaji or item.title.english or item.title.native }}" {% if lazy|default(true) %}loading="lazy"{% endif %}>
+        {% endif %}
+        <span class="cover-fallback" aria-hidden="true">Cover unavailable</span>
+    </a>
+    <div class="manga-card-body">
+        <h3><a href="{{ url_for('manga.detail', manga_id=item.id) }}">{{ item.title.romaji or item.title.english or item.title.native or 'Mangá sem título' }}</a></h3>
+        {% if recent|default(false) %}
+            {% set start = item.startDate or {} %}
+            <p class="card-meta">Iniciado em {{ [start.year, start.month, start.day]|select|join('-') or 'data indisponível' }}</p>
+        {% elif item.averageScore %}
+            <p class="card-meta">Nota {{ (item.averageScore / 10)|round(1) }}/10</p>
+        {% endif %}
+        {% if item.genres %}
+            <p class="card-meta card-genres">{{ item.genres[:2]|join(' · ') }}</p>
+        {% elif item.status %}
+            <p class="card-meta">{{ item.status|replace('_', ' ')|title }}</p>
+        {% endif %}
+        {% if recent|default(false) and item.status %}
+            <p class="card-meta">{{ item.status|replace('_', ' ')|title }}</p>
+        {% endif %}
+        <a href="{{ url_for('manga.detail', manga_id=item.id) }}" class="button secondary small">Ver detalhes</a>
+    </div>
+</article>

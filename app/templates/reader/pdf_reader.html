@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}{{ manga_title }} · {{ chapter_display_title }} · Mangari{% endblock %}
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+<!-- PDF.js via CDN oficial e estável com fallback local -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+</script>
+{% endblock %}
+{% block content %}
+<main class="manga-reader pdf-mode"
+      data-reader
+      data-reader-type="pdf"
+      data-pdf-url="{{ pdf_url }}"
+      data-page-count="{{ chapter.page_count }}"
+      data-initial-page="{{ progress.current_page if progress else 1 }}"
+      data-progress-url="{{ url_for('reader.update_progress', chapter_id=chapter.id) }}"
+      data-manga-url="{{ url_for('manga.detail', manga_id=chapter.anilist_id) }}">
+
+    <!-- Barra de progresso fina fixa no topo da tela em laranja (#FF7518) -->
+    <div class="reader-progress-track" aria-hidden="true">
+        <span id="reader-progress-bar"></span>
+    </div>
+
+    <!-- Barra de ferramentas superior (Header Foco/Imersivo) -->
+    <header class="reader-toolbar" id="reader-toolbar">
+        <div class="reader-toolbar-left">
+            <a class="reader-back-btn" href="{{ url_for('manga.detail', manga_id=chapter.anilist_id) }}" title="Voltar para a Obra">
+                ← <span class="desktop-only">Voltar para a </span>Obra
+            </a>
+            <div class="reader-title-box">
+                <span class="reader-manga-name">{{ manga_title }}</span>
+                <strong class="reader-chapter-name">{{ chapter_display_title }}</strong>
+            </div>
+        </div>
+
+        <div class="reader-toolbar-center">
+            <!-- Seletor Rápido de Capítulos -->
+            <div class="reader-select-wrap">
+                <select id="chapter-select" class="reader-select" aria-label="Selecionar capítulo" onchange="if(this.value) window.location.href=this.value;">
+                    {% for c in chapters %}
+                        {% set c_num = '%g'|format(c.chapter_number) %}
+                        {% set c_label = 'Capítulo ' ~ c_num %}
+                        {% if c.chapter_title %}
+                            {% set c_label = c_label ~ ' — ' ~ c.chapter_title %}
+                        {% endif %}
+                        <option value="{{ url_for('reader.read_chapter', chapter_id=c.id) }}" {% if c.id == chapter.id %}selected{% endif %}>
+                            {{ c_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <nav class="reader-toolbar-right" aria-label="Navegação de capítulos">
+            {% if previous_chapter %}
+                <a class="reader-control-btn" href="{{ url_for('reader.read_chapter', chapter_id=previous_chapter.id) }}" title="Capítulo Anterior">
+                    ← <span class="desktop-only">Anterior</span>
+                </a>
+            {% else %}
+                <span class="reader-control-btn disabled" aria-disabled="true" title="Primeiro capítulo">
+                    ← <span class="desktop-only">Anterior</span>
+                </span>
+            {% endif %}
+
+            {% if next_chapter %}
+                <a class="reader-control-btn primary" href="{{ url_for('reader.read_chapter', chapter_id=next_chapter.id) }}" title="Próximo Capítulo">
+                    <span class="desktop-only">Próximo </span>→
+                </a>
+            {% else %}
+                <span class="reader-control-btn disabled" aria-disabled="true" title="Último capítulo">
+                    <span class="desktop-only">Próximo </span>→
+                </span>
+            {% endif %}
+        </nav>
+    </header>
+
+    <!-- Barra de Opções e Controles de Leitura -->
+    <div class="reader-options-bar" id="reader-options-bar" aria-label="Controles de exibição e leitura">
+        <!-- Alternador de Modo de Leitura -->
+        <div class="reader-mode-toggle" role="group" aria-label="Modo de leitura">
+            <button type="button" class="reader-opt-btn" data-mode="vertical" aria-pressed="true" title="Rolagem Contínua / Webtoon">
+                Rolagem Vertical
+            </button>
+            <button type="button" class="reader-opt-btn" data-mode="single" aria-pressed="false" title="Página Única">
+                Página Única
+            </button>
+        </div>
+
+        <!-- Navegador de Página / Contador -->
+        <div class="reader-page-nav-wrap">
+            <button type="button" class="reader-opt-btn icon-btn" id="previous-page" aria-label="Página anterior" title="Página anterior (←)">
+                ←
+            </button>
+            <span id="current-page" class="reader-page-indicator">Página {{ progress.current_page if progress else 1 }} / {{ chapter.page_count }}</span>
+            <button type="button" class="reader-opt-btn icon-btn" id="next-page" aria-label="Próxima página" title="Próxima página (→)">
+                →
+            </button>
+        </div>
+
+        <!-- Ajuste de Largura / Zoom & Fullscreen -->
+        <div class="reader-view-actions">
+            <div class="reader-width-presets" role="group" aria-label="Ajuste de largura">
+                <button type="button" class="reader-opt-btn" data-width="full" title="Ajustar à largura total (100%)">
+                    100%
+                </button>
+                <button type="button" class="reader-opt-btn" data-width="comfortable" title="Leitura confortável (850px)">
+                    Confortável
+                </button>
+                <button type="button" class="reader-opt-btn" data-width="original" title="Tamanho original">
+                    Original
+                </button>
+            </div>
+            <button type="button" class="reader-opt-btn icon-btn" id="fullscreen-btn" title="Alternar tela cheia (F)" aria-label="Tela cheia">
+                ⛶
+            </button>
+        </div>
+    </div>
+
+    <!-- Feedback e status do leitor -->
+    <p class="reader-status-msg" id="reader-status" aria-live="polite"></p>
+
+    <!-- Indicador de carregamento do PDF -->
+    <div id="pdf-loading-state" class="pdf-loading-state">
+        <div class="pdf-spinner"></div>
+        <p>Carregando documento PDF...</p>
+    </div>
+
+    <!-- Mensagem de fallback caso o PDF falhe ou JavaScript esteja sem suporte -->
+    <div id="pdf-fallback-state" class="pdf-fallback-state" hidden>
+        <p>Não foi possível carregar a renderização do PDF diretamente.</p>
+        <a href="{{ pdf_url }}" target="_blank" class="button primary">Abrir PDF diretamente</a>
+    </div>
+
+    <!-- Container onde os <canvas> das páginas serão renderizados pelo PDF.js -->
+    <!-- Preserva a classe .pdf-viewer-wrapper para compatibilidade com testes existentes -->
+    <div class="pdf-viewer-wrapper reader-pages-container" id="reader-pages" aria-label="Páginas do capítulo em PDF">
+    </div>
+
+    <!-- Card de Fim de Capítulo -->
+    <section class="chapter-end-card" id="chapter-end-card" aria-label="Fim do capítulo">
+        <div class="chapter-end-inner">
+            <span class="chapter-end-badge">Capítulo Concluído</span>
+            <h2 class="chapter-end-title">{{ chapter_display_title }}</h2>
+            <p class="chapter-end-subtitle">Você concluiu a leitura deste capítulo em <strong>{{ manga_title }}</strong>.</p>
+            <div class="chapter-end-actions">
+                {% if next_chapter %}
+                    <a class="button primary chapter-end-btn" href="{{ url_for('reader.read_chapter', chapter_id=next_chapter.id) }}">
+                        Próximo Capítulo →
+                    </a>
+                {% endif %}
+                <a class="button secondary chapter-end-btn" href="{{ url_for('manga.detail', manga_id=chapter.anilist_id) }}">
+                    Voltar para a Obra
+                </a>
+                <a class="button secondary chapter-end-btn" href="{{ url_for('manga.detail', manga_id=chapter.anilist_id) }}#comments-section">
+                    💬 Ir para Comentários
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé de Apoio -->
+    <footer class="reader-bottom-nav">
+        <span id="completion-status" class="reader-save-hint">
+            {% if progress and progress.is_completed %}✓ Capítulo concluído{% else %}Seu progresso é salvo automaticamente.{% endif %}
+        </span>
+        <div class="reader-bottom-links">
+            <a href="{{ url_for('manga.detail', manga_id=chapter.anilist_id) }}">Voltar para a Obra</a>
+            <span>•</span>
+            <a href="{{ url_for('reader.chapter_list', anilist_id=chapter.anilist_id) }}">Lista de Capítulos</a>
+            {% if next_chapter %}
+                <span>•</span>
+                <a class="reader-next-link" href="{{ url_for('reader.read_chapter', chapter_id=next_chapter.id) }}">
+                    Próximo Capítulo ({{ '%g'|format(next_chapter.chapter_number) }}) →
+                </a>
+            {% endif %}
+        </div>
+    </footer>
+</main>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reader.js') }}" defer></script>
+{% endblock %}

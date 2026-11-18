@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.env
+.mypy_cache/
+.pytest_cache/
+venv/
+*.db
+/storage/
+/uploads_tmp/
+!/storage/
+/storage/*
+!/storage/manga/
+/storage/manga/*
+!/storage/manga/.gitkeep

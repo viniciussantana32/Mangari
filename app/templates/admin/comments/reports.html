@@ -1,0 +1,142 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Denúncias de Comentários{% endblock %}
+{% block page_title %}Moderação de Denúncias{% endblock %}
+
+{% block content %}
+<div class="admin-filters">
+    <form method="GET" action="{{ url_for('admin.reports_list') }}" class="admin-search-form">
+        <select name="status" class="form-control" style="max-width: 200px;" onchange="this.form.submit()">
+            <option value="">Status da Denúncia (Todos)</option>
+            <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pendentes</option>
+            <option value="under_review" {% if status == 'under_review' %}selected{% endif %}>Em análise</option>
+            <option value="resolved" {% if status == 'resolved' %}selected{% endif %}>Resolvidas</option>
+            <option value="dismissed" {% if status == 'dismissed' %}selected{% endif %}>Ignoradas</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+        {% if status %}
+            <a href="{{ url_for('admin.reports_list') }}" class="btn btn-secondary btn-sm" style="color: var(--admin-muted);">Limpar</a>
+        {% endif %}
+    </form>
+
+    <div>
+        <a href="{{ url_for('admin.comments_list') }}" class="btn btn-secondary">
+            <span>← Voltar aos Comentários</span>
+        </a>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Comentário Denunciado</th>
+                    <th>Autor do Comentário</th>
+                    <th>Denunciado por</th>
+                    <th>Motivo Declarado</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th style="text-align: right;">Ações de Moderação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in pagination.items %}
+                    <tr>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem;">#{{ r.id }}</td>
+                        <td style="max-width: 250px;">
+                            <div style="color: #e4e4e7; font-size: 0.88rem; line-height: 1.4; max-height: 80px; overflow-y: auto;">
+                                "{{ r.comment.content if r.comment else 'Comentário removido' }}"
+                            </div>
+                            {% if r.comment %}
+                                <span class="badge {% if r.comment.status == 'published' %}badge-success{% else %}badge-danger{% endif %}" style="margin-top: 0.35rem; font-size: 0.65rem;">
+                                    Comentário {{ r.comment.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="font-weight: 600; white-space: nowrap;">
+                            {{ r.comment.user.name if (r.comment and r.comment.user) else '-' }}
+                        </td>
+                        <td style="color: var(--admin-muted); white-space: nowrap;">
+                            {{ r.reporter.name if r.reporter else 'Anônimo' }}
+                        </td>
+                        <td style="color: var(--admin-yellow); font-size: 0.88rem;">
+                            {{ r.reason }}
+                        </td>
+                        <td>
+                            {% if r.status == 'pending' %}
+                                <span class="badge badge-warning">Pendente</span>
+                            {% elif r.status == 'under_review' %}
+                                <span class="badge badge-info">Em Análise</span>
+                            {% elif r.status == 'resolved' %}
+                                <span class="badge badge-success">Resolvida</span>
+                            {% else %}
+                                <span class="badge badge-muted">Ignorada</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem; white-space: nowrap;">
+                            {{ r.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            {% if r.comment and r.comment.status == 'published' %}
+                                <form method="POST" action="{{ url_for('admin.comment_hide', comment_id=r.comment.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Ocultar comentário" style="color: var(--admin-danger);">
+                                        Ocultar
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            {% if r.status != 'resolved' %}
+                                <form method="POST" action="{{ url_for('admin.report_action', report_id=r.id, action='resolve') }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-primary btn-sm" title="Marcar como resolvida">
+                                        ✓ Resolver
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            {% if r.status != 'dismissed' %}
+                                <form method="POST" action="{{ url_for('admin.report_action', report_id=r.id, action='dismiss') }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Ignorar denúncia">
+                                        Ignorar
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--admin-muted); padding: 2.5rem;">
+                            Nenhuma denúncia registrada com os filtros informados.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if pagination.pages > 1 %}
+        <div class="admin-pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('admin.reports_list', page=pagination.prev_num, status=status) }}" class="page-link">&laquo;</a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    <a href="{{ url_for('admin.reports_list', page=p, status=status) }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+                {% else %}
+                    <span class="page-link" style="border: none; background: none;">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a href="{{ url_for('admin.reports_list', page=pagination.next_num, status=status) }}" class="page-link">&raquo;</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

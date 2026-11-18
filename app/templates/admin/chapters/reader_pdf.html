@@ -1,0 +1,43 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Visualizador PDF - Cap. {{ chapter.chapter_number }}{% endblock %}
+{% block page_title %}Pré-visualização: Capítulo #{{ chapter.chapter_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+    <div class="admin-card" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0; font-size: 1.15rem; color: var(--admin-text);">
+                {{ manga.title if manga else ('AniList ID #' ~ chapter.anilist_id) }} — Cap. {{ chapter.chapter_number }}
+            </h3>
+            <span style="font-size: 0.85rem; color: var(--admin-muted);">
+                {{ chapter.chapter_title or 'Sem título adicional' }} • {{ chapter.page_count }} páginas •
+                Arquivo: <code>{{ chapter.original_filename or 'document.pdf' }}</code>
+            </span>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('admin.chapter_edit', chapter_id=chapter.id) }}" class="btn btn-secondary btn-sm">
+                ✏️ Editar
+            </a>
+            <a href="{{ pdf_url }}" target="_blank" class="btn btn-secondary btn-sm">
+                ↗ Abrir em nova aba
+            </a>
+            <a href="{{ url_for('admin.chapters_list') }}" class="btn btn-primary btn-sm">
+                Voltar à lista
+            </a>
+        </div>
+    </div>
+
+    <!-- Container do visualizador PDF -->
+    <div style="width: 100%; height: 80vh; min-height: 600px; background: #000; border-radius: var(--admin-radius); overflow: hidden; border: 1px solid var(--admin-border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <object data="{{ pdf_url }}" type="application/pdf" width="100%" height="100%" style="display: block; border: none;">
+            <iframe src="{{ pdf_url }}" width="100%" height="100%" style="border: none;">
+                <div style="padding: 3rem; text-align: center; color: var(--admin-muted);">
+                    <p style="font-size: 1rem; color: var(--admin-text);">Visualização direta não suportada no navegador.</p>
+                    <a href="{{ pdf_url }}" target="_blank" class="btn btn-primary" style="margin-top: 1rem;">Baixar / Abrir Arquivo PDF</a>
+                </div>
+            </iframe>
+        </object>
+    </div>
+</div>
+{% endblock %}

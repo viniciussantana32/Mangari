@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Detalhes da Biblioteca | Mangari{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ entry.manga_title }}</h1>
+    <div class="list-actions">
+        <a class="button secondary" href="{{ url_for('library.edit_library', entry_id=entry.id) }}">Editar</a>
+        <form method="POST" action="{{ url_for('library.delete_library', entry_id=entry.id) }}">
+            <button type="submit" class="button danger">Remover</button>
+        </form>
+    </div>
+</div>
+<div class="detail-panel">
+    {% if entry.cover_image %}<img src="{{ entry.cover_image }}" alt="{{ entry.manga_title }}" class="detail-cover">{% endif %}
+    <div>
+        <p><strong>Status de Leitura:</strong> {{ entry.reading_status }}</p>
+        <p><strong>Capítulo Atual:</strong> {{ entry.current_chapter }}</p>
+        <p><strong>Nota Pessoal:</strong> {{ entry.personal_rating }}</p>
+    </div>
+</div>
+{% endblock %}

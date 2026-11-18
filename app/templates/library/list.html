@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Minha Biblioteca | Mangari{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Minha Biblioteca</h1>
+</div>
+<form class="search-bar" method="GET">
+    <input type="text" name="q" value="{{ search or '' }}" placeholder="Buscar por título na biblioteca...">
+    <select name="status">
+        <option value="">Todos os status</option>
+        <option value="Want to Read" {% if status == 'Want to Read' %}selected{% endif %}>Quero Ler (Want to Read)</option>
+        <option value="Reading" {% if status == 'Reading' %}selected{% endif %}>Lendo (Reading)</option>
+        <option value="Completed" {% if status == 'Completed' %}selected{% endif %}>Concluído (Completed)</option>
+        <option value="Paused" {% if status == 'Paused' %}selected{% endif %}>Pausado (Paused)</option>
+        <option value="Dropped" {% if status == 'Dropped' %}selected{% endif %}>Abandonado (Dropped)</option>
+    </select>
+    <button type="submit" class="button secondary">Filtrar</button>
+</form>
+
+<div class="card-grid">
+    {% for entry in entries %}
+        <article class="manga-card">
+            {% if entry.cover_image %}<img src="{{ entry.cover_image }}" alt="{{ entry.manga_title }}">{% endif %}
+            <div class="manga-card-body">
+                <h3>{{ entry.manga_title }}</h3>
+                <p>Status: {{ entry.reading_status }}</p>
+                <p>Capítulo: {{ entry.current_chapter }}</p>
+                {% if latest_progress.get(entry.anilist_id) %}
+                    {% set reading = latest_progress.get(entry.anilist_id) %}
+                    <p class="card-meta">Leitor: capítulo {{ '%g'|format(reading.chapter_number) }} · {% if reading.is_completed %}concluído{% else %}página {{ reading.current_page }}{% endif %}</p>
+                    <a href="{{ url_for('reader.read_chapter', chapter_id=reading.id) }}" class="button secondary small">Continuar leitura</a>
+                {% endif %}
+                <a href="{{ url_for('library.detail_library', entry_id=entry.id) }}" class="button secondary small">Detalhes</a>
+                <a href="{{ url_for('reader.chapter_list', anilist_id=entry.anilist_id) }}" class="button secondary small">Capítulos locais</a>
+            </div>
+        </article>
+    {% else %}
+        <p style="color: var(--color-muted); grid-column: 1 / -1; text-align: center; padding: 3rem 0;">
+            Nenhum mangá encontrado na sua biblioteca.
+        </p>
+    {% endfor %}
+</div>
+{% endblock %}

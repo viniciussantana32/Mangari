@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Página Não Encontrada (404) | Mangari{% endblock %}
+
+{% block content %}
+<section class="empty-state">
+    <h1>404</h1>
+    <p>A página que você procura não foi encontrada.</p>
+    <a href="{{ url_for('main.index') }}" class="button primary" style="margin-top: 1rem;">Voltar ao Início</a>
+</section>
+{% endblock %}

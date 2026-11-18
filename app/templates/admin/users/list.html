@@ -1,0 +1,122 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Gerenciamento de Usuários{% endblock %}
+{% block page_title %}Usuários do Sistema{% endblock %}
+
+{% block content %}
+<div class="admin-filters">
+    <form method="GET" action="{{ url_for('admin.users_list') }}" class="admin-search-form">
+        <input type="text" name="q" value="{{ search or '' }}" placeholder="Buscar por nome ou e-mail..." class="form-control" style="max-width: 320px;">
+
+        <select name="role" class="form-control" style="max-width: 160px;" onchange="this.form.submit()">
+            <option value="">Papel (Todos)</option>
+            <option value="admin" {% if role == 'admin' %}selected{% endif %}>Administradores</option>
+            <option value="user" {% if role == 'user' %}selected{% endif %}>Usuários Comuns</option>
+        </select>
+
+        <select name="status" class="form-control" style="max-width: 160px;" onchange="this.form.submit()">
+            <option value="">Status da Conta</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Ativos</option>
+            <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Bloqueados</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Filtrar</button>
+        {% if search or role or status %}
+            <a href="{{ url_for('admin.users_list') }}" class="btn btn-secondary btn-sm" style="color: var(--admin-muted);">Limpar</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="admin-card">
+    <div class="admin-table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Papel</th>
+                    <th>Status</th>
+                    <th>Biblioteca</th>
+                    <th>Cadastro</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in pagination.items %}
+                    <tr>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem;">#{{ u.id }}</td>
+                        <td style="font-weight: 700;">
+                            {{ u.name }}
+                            {% if u.id == current_user.id %}
+                                <span style="font-size: 0.7rem; color: var(--admin-yellow); margin-left: 0.35rem;">(Você)</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: #e4e4e7;">{{ u.email }}</td>
+                        <td>
+                            {% if u.is_admin %}
+                                <span class="badge badge-info">Admin</span>
+                            {% else %}
+                                <span class="badge badge-muted">User</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.user_toggle_status', user_id=u.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="badge {% if u.is_active %}badge-success{% else %}badge-danger{% endif %}" style="cursor: pointer; border: none;" {% if u.id == current_user.id %}disabled title="Não é possível bloquear sua própria conta"{% endif %}>
+                                    {% if u.is_active %}Ativo{% else %}Bloqueado{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <span style="color: var(--admin-muted); font-size: 0.85rem;">{{ u.library_entries|length }} obras</span>
+                        </td>
+                        <td style="color: var(--admin-muted); font-size: 0.8rem; white-space: nowrap;">
+                            {{ u.created_at.strftime('%d/%m/%Y') }}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{{ url_for('admin.user_edit', user_id=u.id) }}" class="btn btn-secondary btn-sm" title="Editar usuário">
+                                ✏️ Editar
+                            </a>
+                            {% if u.id != current_user.id %}
+                                <form method="POST" action="{{ url_for('admin.user_delete', user_id=u.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir o usuário {{ u.name }}? Esta ação não pode ser desfeita.');" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Excluir usuário">
+                                        🗑️
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--admin-muted); padding: 2.5rem;">
+                            Nenhum usuário encontrado com os filtros informados.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if pagination.pages > 1 %}
+        <div class="admin-pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('admin.users_list', page=pagination.prev_num, q=search, role=role, status=status) }}" class="page-link">&laquo;</a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    <a href="{{ url_for('admin.users_list', page=p, q=search, role=role, status=status) }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+                {% else %}
+                    <span class="page-link" style="border: none; background: none;">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a href="{{ url_for('admin.users_list', page=pagination.next_num, q=search, role=role, status=status) }}" class="page-link">&raquo;</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

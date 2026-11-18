@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+{% block title %}{{ manga.title.romaji or manga.title.english or manga.title.native if manga else (local_manga.title if local_manga else 'Mangá') }} | Mangari{% endblock %}
+
+{% block content %}
+{% if error and not local_manga %}
+    <div class="alert alert-danger">Os detalhes da obra estão temporariamente indisponíveis. Tente novamente mais tarde.</div>
+{% else %}
+{% set current_manga_title = manga.title.romaji or manga.title.english or manga.title.native if manga else local_manga.title %}
+{% set current_cover_url = (manga.coverImage.extraLarge or manga.coverImage.large) if (manga and manga.coverImage) else (local_manga.cover_image if local_manga else '') %}
+{% set current_status = manga.status if manga else (local_manga.publication_status if local_manga else 'Desconhecido') %}
+{% set current_chapters_count = (manga.chapters or 'N/A') if manga else (local_manga.anilist_chapters or 'N/A') %}
+{% set current_genres = manga.genres if manga else (local_manga.genres.split(',') if local_manga and local_manga.genres else []) %}
+{% set current_synopsis = (manga.description|striptags) if (manga and manga.description) else (local_manga.synopsis if (local_manga and local_manga.synopsis) else 'Sem sinopse disponível.') %}
+{% set current_anilist_id = manga.id if manga else local_manga.anilist_id %}
+
+<div class="detail-page">
+    <div class="cover-frame detail-cover-wrap">
+        {% if current_cover_url %}
+            <img src="{{ current_cover_url }}" alt="Capa de {{ current_manga_title }}" class="detail-cover">
+        {% endif %}
+        <span class="cover-fallback" aria-hidden="true">Capa indisponível</span>
+    </div>
+    <div class="detail-info">
+        <h1>{{ current_manga_title }}</h1>
+        <div class="meta-row">
+            <span>Status: {{ current_status | translate_status }}</span>
+            <span>
+                Capítulos: 
+                {% if total_chapters_known and available_chapters_count > 0 %}
+                    <strong style="color: var(--color-orange-light);">{{ available_chapters_count }} de {{ total_chapters_known }}</strong> disponíveis
+                {% elif total_chapters_known %}
+                    <strong style="color: var(--color-muted);">0 de {{ total_chapters_known }}</strong> disponíveis
+                {% elif available_chapters_count > 0 %}
+                    <strong style="color: var(--color-orange-light);">{{ available_chapters_count }}</strong> disponível{% if available_chapters_count > 1 %}s{% endif %}
+                {% else %}
+                    <span style="color: var(--color-muted);">Nenhum disponível no momento</span>
+                {% endif %}
+            </span>
+            {% if manga and manga.averageScore %}
+                <span>Avaliação: {{ manga.averageScore }}%</span>
+            {% endif %}
+        </div>
+        <p>{{ current_synopsis }}</p>
+        <div class="tag-list">
+            {% for genre in current_genres or [] %}
+                <span class="tag">{{ genre.strip() if genre is string else genre }}</span>
+            {% endfor %}
+        </div>
+
+        <!-- Grupo de Botões e Ações com amplo espaçamento -->
+        <div class="manga-actions-wrapper" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border);">
+            {% if available_chapters_count > 0 %}
+                {% if resume_chapter %}
+                    <a class="button primary" href="{{ url_for('reader.read_chapter', chapter_id=resume_chapter.id) }}" style="padding: 0.75rem 1.4rem; font-size: 0.95rem; font-weight: 600;">
+                        Continuar do capítulo {{ resume_chapter.chapter_number | clean_number }}
+                    </a>
+                {% elif first_available_chapter %}
+                    <a class="button primary" href="{{ first_available_chapter.read_url }}" style="padding: 0.75rem 1.4rem; font-size: 0.95rem; font-weight: 600;">
+                        Começar a ler
+                    </a>
+                {% elif local_chapters %}
+                    <a class="button primary" href="{{ url_for('reader.read_chapter', chapter_id=local_chapters[0].id) }}" style="padding: 0.75rem 1.4rem; font-size: 0.95rem; font-weight: 600;">
+                        Começar a ler
+                    </a>
+                {% endif %}
+                <a class="button secondary" href="#chapters-section" style="padding: 0.75rem 1.4rem; font-size: 0.95rem;">
+                    Ver {{ available_chapters_count }} capítulo{% if available_chapters_count != 1 %}s{% endif %} disponível{% if available_chapters_count != 1 %}s{% endif %}
+                </a>
+            {% else %}
+                <button type="button" class="button secondary" disabled style="padding: 0.75rem 1.4rem; font-size: 0.95rem; opacity: 0.55; cursor: not-allowed;">
+                    Nenhum capítulo disponível no momento
+                </button>
+            {% endif %}
+
+            {% if current_user.is_authenticated %}
+                <form method="POST" action="{{ url_for('library.add_to_library') }}" style="margin: 0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="anilist_id" value="{{ current_anilist_id }}">
+                    <input type="hidden" name="manga_title" value="{{ current_manga_title }}">
+                    <input type="hidden" name="cover_image" value="{{ current_cover_url }}">
+                    <input type="hidden" name="reading_status" value="Want to Read">
+                    <button type="submit" class="button secondary" style="padding: 0.75rem 1.4rem; font-size: 0.95rem;">
+                        + Adicionar à Biblioteca
+                    </button>
+                </form>
+            {% else %}
+                <a class="button secondary" href="{{ url_for('auth.login') }}" style="padding: 0.75rem 1.4rem; font-size: 0.95rem;">
+                    Faça login para adicionar à sua biblioteca
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Seção da Lista Completa de Capítulos (Disponíveis vs. Indisponíveis) -->
+<section class="chapters-section" id="chapters-section" style="margin-top: 3.5rem; padding-top: 2rem; border-top: 1px solid var(--color-border);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <h2 style="font-size: 1.4rem; color: var(--color-text); margin: 0 0 0.35rem 0;">
+                Capítulos da Obra
+            </h2>
+            <p style="color: var(--color-muted); font-size: 0.88rem; margin: 0;">
+                {% if total_chapters_known and available_chapters_count > 0 %}
+                    <strong style="color: var(--color-orange-light);">{{ available_chapters_count }} de {{ total_chapters_known }}</strong> capítulos disponíveis para leitura imediata.
+                {% elif available_chapters_count > 0 %}
+                    <strong style="color: var(--color-orange-light);">{{ available_chapters_count }}</strong> capítulo(s) disponível(is) para leitura.
+                {% else %}
+                    Nenhum capítulo foi importado localmente ainda.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Controles de Filtro e Ordenação -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <div class="chapter-filter-pills" style="display: flex; gap: 0.4rem; background: var(--color-surface); padding: 0.3rem; border-radius: 8px; border: 1px solid var(--color-border);">
+                <button type="button" class="chapter-filter-btn active" data-filter="all">
+                    Todos ({{ unified_chapters|length }})
+                </button>
+                <button type="button" class="chapter-filter-btn" data-filter="available">
+                    Disponíveis ({{ available_chapters_count }})
+                </button>
+                <button type="button" class="chapter-filter-btn" data-filter="unavailable">
+                    Indisponíveis ({{ (unified_chapters|length) - available_chapters_count }})
+                </button>
+            </div>
+
+            <button type="button" id="chapter-sort-btn" class="button secondary" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; height: 36px; display: flex; align-items: center; gap: 0.35rem;">
+                <span id="sort-icon">⇅</span>
+                <span id="sort-label">Crescente (1 → N)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Lista de Itens dos Capítulos -->
+    {% if unified_chapters %}
+        <div class="chapter-items-grid" id="chapter-items-grid" style="display: grid; gap: 0.65rem;">
+            {% for ch in unified_chapters %}
+                <div class="chapter-item-row {% if ch.is_available %}is-available{% else %}is-unavailable{% endif %}"
+                     data-available="{{ 'true' if ch.is_available else 'false' }}"
+                     data-sort="{{ ch.numeric_sort }}"
+                     data-number="{{ ch.number }}">
+                    
+                    <div class="chapter-item-left" style="display: flex; align-items: center; gap: 0.75rem; min-width: 0;">
+                        {% if ch.is_available %}
+                            <span class="chapter-item-icon" style="color: var(--color-orange); font-size: 1.1rem; flex-shrink: 0;">📖</span>
+                            <div style="min-width: 0;">
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem;">
+                                    <strong style="color: var(--color-text); font-size: 0.95rem;">Capítulo {{ ch.number | clean_number }}</strong>
+                                    {% if ch.title and ch.title != 'Capítulo ' ~ ch.number and ch.title != 'Capítulo ' ~ (ch.number | clean_number) %}
+                                        <span style="color: var(--color-muted); font-size: 0.88rem;">— {{ ch.title }}</span>
+                                    {% endif %}
+                                    {% if ch.volume %}
+                                        <span class="badge" style="background: rgba(255, 182, 39, 0.12); color: var(--color-yellow); font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 4px;">
+                                            Vol. {{ ch.volume }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {% if ch.published_at %}
+                                    <small style="color: var(--color-muted); font-size: 0.78rem; display: block; margin-top: 0.2rem;">
+                                        Disponibilizado em {{ ch.published_at }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="chapter-item-icon" style="color: #71717A; font-size: 1rem; flex-shrink: 0;">🔒</span>
+                            <div style="min-width: 0;">
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem;">
+                                    <span style="color: var(--color-muted); font-weight: 600; font-size: 0.95rem;">Capítulo {{ ch.number | clean_number }}</span>
+                                    <span style="color: #71717A; font-size: 0.82rem;">— Conteúdo ainda não importado</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="chapter-item-right" style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+                        {% if ch.is_available %}
+                            <span class="badge" style="background: rgba(74, 222, 128, 0.15); color: #4ade80; font-size: 0.78rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 6px;">
+                                ● Disponível
+                            </span>
+                            <a href="{{ ch.read_url }}" class="button primary" style="padding: 0.45rem 1.1rem; font-size: 0.85rem; font-weight: 600; text-decoration: none;">
+                                Ler capítulo →
+                            </a>
+                        {% else %}
+                            <span class="badge" style="background: rgba(161, 161, 170, 0.12); color: #A1A1AA; font-size: 0.75rem; font-weight: 600; padding: 0.3rem 0.65rem; border-radius: 6px;">
+                                Indisponível
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div id="no-filtered-chapters" style="display: none; text-align: center; padding: 2.5rem 1rem; color: var(--color-muted); background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-card); margin-top: 1rem;">
+            Nenhum capítulo corresponde ao filtro selecionado.
+        </div>
+    {% else %}
+        <div style="background: var(--color-card); padding: 2rem; border-radius: var(--radius-card); border: 1px solid var(--color-border); text-align: center; color: var(--color-muted);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📖</div>
+            <strong style="color: var(--color-text);">Nenhum capítulo catalogado para esta obra no momento.</strong>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem;">Os capítulos aparecerão aqui assim que forem importados no painel ou indexados pela AniList.</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Seção de Comentários e Comunidade -->
+<section class="comments-section" style="margin-top: 3.5rem; padding-top: 2rem; border-top: 1px solid var(--color-border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.4rem; color: var(--color-text); margin: 0;">
+            Comentários <span style="color: var(--color-orange); font-size: 1rem; font-weight: 500;">({{ comments|length }})</span>
+        </h2>
+    </div>
+
+    <!-- Formulário para envio de comentário -->
+    {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('manga.add_comment', manga_id=current_anilist_id) }}" style="margin-bottom: 2.5rem; background: var(--color-card); padding: 1.5rem; border-radius: var(--radius-card); border: 1px solid var(--color-border);">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="margin-bottom: 1.25rem;">
+                <label for="comment-content" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-muted);">Deixe sua opinião sobre esta obra:</label>
+                <textarea id="comment-content" name="content" rows="3" required placeholder="O que você achou deste mangá?" style="width: 100%; box-sizing: border-box; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.85rem; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
+            </div>
+            <button type="submit" class="button primary" style="padding: 0.75rem 1.6rem; font-weight: 600;">Publicar Comentário</button>
+        </form>
+    {% else %}
+        <div style="background: var(--color-card); padding: 1.25rem 1.5rem; border-radius: var(--radius-card); border: 1px solid var(--color-border); margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <span style="color: var(--color-muted);">Faça login para interagir e deixar seu comentário sobre esta obra.</span>
+            <a href="{{ url_for('auth.login') }}" class="button primary" style="padding: 0.6rem 1.3rem; font-size: 0.9rem;">Entrar</a>
+        </div>
+    {% endif %}
+
+    <!-- Lista de Comentários Publicados -->
+    <div class="comments-list" style="display: flex; flex-direction: column; gap: 1.25rem;">
+        {% for comment in comments %}
+            <article class="comment-card" style="background: var(--color-card); padding: 1.25rem 1.5rem; border-radius: var(--radius-card); border: 1px solid var(--color-border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-weight: 700; color: var(--color-text); font-size: 0.95rem;">{{ comment.user.name }}</span>
+                        {% if comment.user.is_admin %}
+                            <span style="background: rgba(255, 117, 24, 0.2); color: var(--color-orange); font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">Admin</span>
+                        {% endif %}
+                        <span style="color: var(--color-muted); font-size: 0.8rem;">{{ comment.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        {% if current_user.is_authenticated and (comment.user_id == current_user.id or current_user.is_admin) %}
+                            <form method="POST" action="{{ url_for('manga.delete_comment_user', comment_id=comment.id) }}" onsubmit="return confirm('Deseja excluir seu comentário?');" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 0.8rem; text-decoration: underline; padding: 0;">Excluir</button>
+                            </form>
+                        {% endif %}
+
+                        {% if current_user.is_authenticated and comment.user_id != current_user.id %}
+                            <button type="button" onclick="openReportModal({{ comment.id }})" style="background: none; border: none; color: var(--color-muted); cursor: pointer; font-size: 0.8rem; text-decoration: underline; padding: 0;">Denunciar</button>
+                        {% endif %}
+                    </div>
+                </div>
+                <p style="margin: 0; color: #e4e4e7; line-height: 1.5; white-space: pre-wrap; font-size: 0.95rem;">{{ comment.content }}</p>
+            </article>
+        {% else %}
+            <p style="color: var(--color-muted); font-style: italic; margin: 1rem 0;">Ainda não há comentários sobre esta obra. Seja o primeiro a comentar!</p>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Modal de Denúncia -->
+<div id="report-modal" style="display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1.5rem;">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-card); padding: 2rem; max-width: 480px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.85);">
+        <h3 style="margin-top: 0; color: var(--color-text); font-size: 1.2rem;">Denunciar Comentário</h3>
+        <p style="color: var(--color-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Por favor, descreva o motivo da denúncia para análise da moderação.</p>
+        <form id="report-form" method="POST" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="margin-bottom: 1.5rem;">
+                <label for="report-reason" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--color-muted);">Motivo da denúncia:</label>
+                <textarea id="report-reason" name="reason" rows="3" required placeholder="Ex: Spam, conteúdo impróprio, spoiler..." style="width: 100%; box-sizing: border-box; background: var(--color-card); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem; font-family: inherit; font-size: 0.95rem;"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" onclick="closeReportModal()" class="button secondary" style="padding: 0.6rem 1.2rem;">Cancelar</button>
+                <button type="submit" class="button primary" style="padding: 0.6rem 1.4rem;">Enviar Denúncia</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openReportModal(commentId) {
+    const modal = document.getElementById('report-modal');
+    const form = document.getElementById('report-form');
+    form.action = '/manga/comment/' + commentId + '/report';
+    modal.style.display = 'flex';
+}
+function closeReportModal() {
+    document.getElementById('report-modal').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const filterBtns = document.querySelectorAll('.chapter-filter-btn');
+    const sortBtn = document.getElementById('chapter-sort-btn');
+    const sortLabel = document.getElementById('sort-label');
+    const grid = document.getElementById('chapter-items-grid');
+    const noChaptersMsg = document.getElementById('no-filtered-chapters');
+
+    if (!grid) return;
+
+    let currentFilter = 'all';
+    let isAscending = true;
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter;
+            applyFilterAndSort();
+        });
+    });
+
+    if (sortBtn) {
+        sortBtn.addEventListener('click', function() {
+            isAscending = !isAscending;
+            if (sortLabel) {
+                sortLabel.textContent = isAscending ? 'Crescente (1 → N)' : 'Decrescente (N → 1)';
+            }
+            applyFilterAndSort();
+        });
+    }
+
+    function applyFilterAndSort() {
+        const rows = Array.from(grid.querySelectorAll('.chapter-item-row'));
+        let visibleCount = 0;
+
+        rows.sort((a, b) => {
+            const valA = parseFloat(a.dataset.sort) || 0;
+            const valB = parseFloat(b.dataset.sort) || 0;
+            return isAscending ? valA - valB : valB - valA;
+        });
+
+        rows.forEach(row => {
+            const isAvail = row.dataset.available === 'true';
+            let show = false;
+
+            if (currentFilter === 'all') {
+                show = true;
+            } else if (currentFilter === 'available' && isAvail) {
+                show = true;
+            } else if (currentFilter === 'unavailable' && !isAvail) {
+                show = true;
+            }
+
+            if (show) {
+                row.style.display = 'flex';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+
+            grid.appendChild(row);
+        });
+
+        if (noChaptersMsg) {
+            noChaptersMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

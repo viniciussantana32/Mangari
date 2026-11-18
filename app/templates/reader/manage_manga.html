@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Capítulos locais · Mangari{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+{% endblock %}
+{% block content %}
+<section class="reader-content">
+    <a class="reader-back" href="{{ url_for('reader.manage') }}">← Todos os mangás</a>
+    <header class="reader-manage-heading">
+        <div>
+            <p class="eyebrow">AniList {{ anilist_id }}</p>
+            <h1>
+                {% set title_data = manga.title or {} %}
+                {{ title_data.english or title_data.romaji or title_data.native or ('AniList ' ~ anilist_id) }}
+            </h1>
+            {% if manga_error %}<p class="reader-muted">Não foi possível carregar os metadados da AniList agora.</p>{% endif %}
+        </div>
+        <a class="button primary" href="{{ url_for('reader.import_view', anilist_id=anilist_id) }}">Importar capítulo</a>
+    </header>
+    {% if chapters %}
+        <div class="reader-manage-list">
+            {% for chapter in chapters %}
+                <article class="reader-manage-item">
+                    <div>
+                        <strong>Capítulo {{ '%g'|format(chapter.chapter_number) }}</strong>
+                        <p>{{ chapter.chapter_title or 'Sem título' }} · Volume {{ '%g'|format(chapter.volume_number) if chapter.volume_number is not none else '—' }} · {{ chapter.page_count }} páginas</p>
+                        <small>
+                            {% if availability[chapter.id] %}Arquivos disponíveis{% else %}Arquivos ausentes ou incompletos{% endif %}
+                            · {% if chapter.is_available %}Ativo{% else %}Desativado{% endif %}
+                            · Importado em {{ chapter.created_at.strftime('%d/%m/%Y') }}
+                        </small>
+                    </div>
+                    <div class="reader-admin-actions">
+                        <a class="reader-control" href="{{ url_for('reader.edit_chapter', chapter_id=chapter.id) }}">Editar metadados</a>
+                        <form method="POST" action="{{ url_for('reader.delete_view', chapter_id=chapter.id) }}" data-confirm="Excluir este capítulo, seu progresso salvo e os arquivos locais?">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="reader-control reader-delete" type="submit">Excluir</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="reader-empty-state">Este mangá ainda não tem capítulos importados.</div>
+    {% endif %}
+</section>
+{% endblock %}

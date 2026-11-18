@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Gerenciar capítulos · Mangari{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+{% endblock %}
+{% block content %}
+<section class="reader-content">
+    <header class="reader-manage-heading">
+        <div>
+            <p class="eyebrow">Administração</p>
+            <h1>Mangás com capítulos locais</h1>
+        </div>
+        <a class="button primary" href="{{ url_for('reader.import_view') }}">Importar capítulo</a>
+    </header>
+    {% if manga_items %}
+        <div class="reader-manga-manage-list">
+            {% for item in manga_items %}
+                <article class="reader-manga-manage-item">
+                    {% if item.cover %}
+                        <img src="{{ item.cover }}" alt="Capa de {{ item.title or ('AniList ' ~ item.anilist_id) }}" loading="lazy">
+                    {% else %}
+                        <div class="reader-manga-cover-placeholder" aria-hidden="true">Capa indisponível</div>
+                    {% endif %}
+                    <div class="reader-manga-manage-info">
+                        <h2>{{ item.title or ('AniList ' ~ item.anilist_id) }}</h2>
+                        <p>{{ item.chapter_count }} capítulo(s) importado(s)</p>
+                        {% if item.unavailable %}<small>Metadados temporariamente indisponíveis na AniList.</small>{% endif %}
+                        <a class="button secondary small" href="{{ url_for('reader.manage_manga_chapters', anilist_id=item.anilist_id) }}">Ver capítulos</a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="reader-empty-state">Nenhum capítulo foi importado ainda.</div>
+    {% endif %}
+</section>
+{% endblock %}

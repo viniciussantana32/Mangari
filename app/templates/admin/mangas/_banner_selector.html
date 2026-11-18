@@ -1,0 +1,408 @@
+<!-- Seção Dedicada: Banner de Fundo (Carrossel da Página Inicial) -->
+<div class="banner-selector-section">
+    <div class="banner-selector-header">
+        <div>
+            <h3 class="banner-selector-title">Banner de Fundo (Carrossel da Página Inicial)</h3>
+            <p class="banner-selector-subtitle">
+                Escolha e visualize exatamente qual imagem será exibida como fundo panorâmico no cabeçalho da página inicial quando este mangá for destaque.
+            </p>
+        </div>
+        <span class="badge banner-badge-official" id="banner-selected-status-badge">Banner Selecionado</span>
+    </div>
+
+    <!-- Campo do Formulário WTForms (mantido sincronizado) -->
+    {{ form.banner_image(id="field-banner-image", type="hidden") }}
+    {% for error in form.banner_image.errors %}
+        <div style="color: var(--admin-danger); font-size: 0.8rem; margin-bottom: 0.75rem;">{{ error }}</div>
+    {% endfor %}
+
+    <!-- Grid de Opções Clicáveis -->
+    <div class="banner-options-grid">
+        <!-- Opção 1: Banner Oficial (AniList) -->
+        <div class="banner-option-card" id="card-banner-official" onclick="selectBannerMode('official')">
+            <div class="banner-card-top">
+                <span class="banner-card-badge banner-badge-official">Banner Oficial</span>
+                <div class="banner-radio-circle">
+                    <div class="banner-radio-inner"></div>
+                </div>
+            </div>
+            <div class="banner-thumb-container">
+                <img id="thumb-banner-official" class="banner-thumb-img" src="" alt="Banner Oficial" style="display: none;">
+                <div id="thumb-placeholder-official" class="banner-thumb-placeholder">
+                    <span>Aguardando obra da AniList...</span>
+                </div>
+            </div>
+            <div class="banner-card-info">
+                <h4>Banner Oficial (AniList)</h4>
+                <p>Artwork panorâmica widescreen oficial fornecida pela AniList.</p>
+                <div id="banner-official-missing-msg" style="display: none; color: var(--admin-yellow); font-size: 0.78rem; margin-top: 0.5rem; line-height: 1.35; padding: 0.4rem 0.6rem; background: rgba(255, 182, 39, 0.1); border-radius: 4px; border-left: 3px solid var(--admin-yellow);">
+                    ⚠️ Esta obra não possui banner horizontal oficial na AniList.
+                </div>
+            </div>
+        </div>
+
+        <!-- Opção 2: Capa em Alta Resolução -->
+        <div class="banner-option-card" id="card-banner-cover" onclick="selectBannerMode('cover')">
+            <div class="banner-card-top">
+                <span class="banner-card-badge banner-badge-cover">Capa em Alta Resolução</span>
+                <div class="banner-radio-circle">
+                    <div class="banner-radio-inner"></div>
+                </div>
+            </div>
+            <div class="banner-thumb-container">
+                <img id="thumb-banner-cover" class="banner-thumb-img banner-thumb-cover-mode" src="" alt="Capa" style="display: none;">
+                <div id="thumb-placeholder-cover" class="banner-thumb-placeholder">
+                    <span>Aguardando capa...</span>
+                </div>
+            </div>
+            <div class="banner-card-info">
+                <h4>Capa em Alta Resolução</h4>
+                <p>Utiliza a arte da capa vertical com desfoque cinematográfico suave nas laterais.</p>
+            </div>
+        </div>
+
+        <!-- Opção 3: URL Personalizada -->
+        <div class="banner-option-card" id="card-banner-custom" onclick="selectBannerMode('custom')">
+            <div class="banner-card-top">
+                <span class="banner-card-badge banner-badge-custom">URL Personalizada</span>
+                <div class="banner-radio-circle">
+                    <div class="banner-radio-inner"></div>
+                </div>
+            </div>
+            <div class="banner-thumb-container">
+                <img id="thumb-banner-custom" class="banner-thumb-img" src="" alt="Banner Personalizado" style="display: none;">
+                <div id="thumb-placeholder-custom" class="banner-thumb-placeholder">
+                    <span>Insira o link abaixo</span>
+                </div>
+            </div>
+            <div class="banner-card-info" onclick="event.stopPropagation();">
+                <h4>URL Externa</h4>
+                <p>Cole o link direto de qualquer artwork horizontal customizada:</p>
+                <input type="url" 
+                       id="custom-banner-url-input" 
+                       class="form-control" 
+                       placeholder="https://exemplo.com/banner.jpg" 
+                       style="margin-top: 0.5rem; font-size: 0.85rem;"
+                       onfocus="selectBannerMode('custom')"
+                       oninput="onCustomBannerUrlInput(this.value)">
+            </div>
+        </div>
+
+        <!-- Opção 4: Upload de Imagem Local -->
+        <div class="banner-option-card" id="card-banner-upload" onclick="selectBannerMode('upload')">
+            <div class="banner-card-top">
+                <span class="banner-card-badge" style="background: rgba(74, 222, 128, 0.15); color: #4ade80;">Arquivo Local</span>
+                <div class="banner-radio-circle">
+                    <div class="banner-radio-inner"></div>
+                </div>
+            </div>
+            <div class="banner-thumb-container">
+                <img id="thumb-banner-upload" class="banner-thumb-img" src="" alt="Banner Local" style="display: none;">
+                <div id="thumb-placeholder-upload" class="banner-thumb-placeholder">
+                    <span>Nenhum arquivo enviado</span>
+                </div>
+            </div>
+            <div class="banner-card-info" onclick="event.stopPropagation();">
+                <h4>Upload do Computador</h4>
+                <p>Envie uma imagem (.jpg, .png, .webp):</p>
+                {{ form.banner_file(class="form-control", id="field-banner-file", style="margin-top: 0.5rem; font-size: 0.82rem;", onchange="onBannerFileSelected(this)") }}
+                {% for error in form.banner_file.errors %}
+                    <div style="color: var(--admin-danger); font-size: 0.78rem; margin-top: 0.25rem;">{{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Controle de Enquadramento Vertical (banner_position) -->
+    <div style="margin: 1.25rem 0 0.5rem; padding: 1rem 1.25rem; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <label class="form-label" style="margin: 0; font-weight: 700; color: var(--admin-text); display: flex; align-items: center; gap: 0.5rem;">
+                <span>📐</span> Enquadramento Vertical do Banner (Hero da Home)
+            </label>
+            <small style="color: var(--admin-muted); font-size: 0.8rem;">
+                Define o alinhamento da imagem de fundo no carrossel da página inicial.
+            </small>
+        </div>
+        <div style="min-width: 180px;">
+            {{ form.banner_position(class="form-control", id="field-banner-position", onchange="onBannerPositionChanged(this.value)") }}
+        </div>
+    </div>
+
+    <!-- Pré-visualização em Tempo Real (Widescreen) -->
+    <div class="banner-preview-wrapper">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <label class="form-label" style="margin: 0; font-weight: 700; font-size: 0.88rem; color: var(--admin-text);">
+                Pré-visualização em Tempo Real (Carrossel da Página Inicial)
+            </label>
+            <span style="font-size: 0.78rem; color: var(--admin-muted);">Simulação fiel do topo da Home (#0B0B0E)</span>
+        </div>
+
+        <div class="banner-preview-box" id="banner-preview-box">
+            <!-- Imagem de fundo renderizada -->
+            <img id="banner-preview-img" class="banner-preview-image official-mode" src="" alt="Pré-visualização do Banner" style="display: none;">
+            
+            <!-- Degradê escuro sobreposto (#0B0B0E nas bordas) -->
+            <div class="banner-preview-overlay"></div>
+
+            <!-- Conteúdo simulado da home sobreposto -->
+            <div class="banner-preview-content" id="banner-preview-content" style="display: none;">
+                <span class="banner-preview-tag">DESTAQUE MANGARI</span>
+                <h4 class="banner-preview-manga-title" id="banner-preview-title">Título do Mangá</h4>
+                <div class="banner-preview-effect-info" id="banner-preview-effect-info">
+                    <span id="banner-preview-mode-icon">🖼️</span>
+                    <span id="banner-preview-mode-text">Modo: Banner Horizontal Oficial</span>
+                </div>
+            </div>
+
+            <!-- Estado vazio antes de escolher uma imagem -->
+            <div class="banner-preview-empty-state" id="banner-preview-empty">
+                <span style="font-size: 1.8rem;">🖼️</span>
+                <span>Nenhuma imagem selecionada para o banner de fundo.</span>
+                <span style="font-size: 0.78rem; color: var(--admin-muted);">Selecione uma obra da AniList acima ou insira uma URL personalizada.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Estado interno do Seletor de Banner
+let bannerSelectorState = {
+    mode: 'official', // 'official' | 'cover' | 'custom' | 'upload'
+    officialBannerUrl: '',
+    coverUrl: '',
+    coverExtraLargeUrl: '',
+    customUrl: '',
+    uploadedUrl: '',
+    position: 'center'
+};
+
+function selectBannerMode(mode) {
+    bannerSelectorState.mode = mode;
+    const cardOfficial = document.getElementById('card-banner-official');
+    const cardCover = document.getElementById('card-banner-cover');
+    const cardCustom = document.getElementById('card-banner-custom');
+    const cardUpload = document.getElementById('card-banner-upload');
+    const hiddenField = document.getElementById('field-banner-image');
+    const customInput = document.getElementById('custom-banner-url-input');
+
+    // Remove classe selected de todos
+    cardOfficial?.classList.remove('selected');
+    cardCover?.classList.remove('selected');
+    cardCustom?.classList.remove('selected');
+    cardUpload?.classList.remove('selected');
+
+    let targetUrl = '';
+    let isCover = false;
+
+    if (mode === 'official') {
+        cardOfficial?.classList.add('selected');
+        targetUrl = bannerSelectorState.officialBannerUrl;
+        isCover = false;
+    } else if (mode === 'cover') {
+        cardCover?.classList.add('selected');
+        targetUrl = bannerSelectorState.coverExtraLargeUrl || bannerSelectorState.coverUrl || (document.getElementById('field-cover') ? document.getElementById('field-cover').value : '');
+        isCover = true;
+    } else if (mode === 'custom') {
+        cardCustom?.classList.add('selected');
+        targetUrl = customInput ? customInput.value.trim() : '';
+        isCover = false;
+    } else if (mode === 'upload') {
+        cardUpload?.classList.add('selected');
+        targetUrl = bannerSelectorState.uploadedUrl || (hiddenField ? hiddenField.value : '');
+        isCover = false;
+    }
+
+    if (hiddenField && mode !== 'upload') {
+        hiddenField.value = targetUrl;
+    } else if (hiddenField && mode === 'upload' && bannerSelectorState.uploadedUrl) {
+        hiddenField.value = bannerSelectorState.uploadedUrl;
+    }
+
+    updateBannerPreview(targetUrl, mode, isCover);
+}
+
+function onBannerFileSelected(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            bannerSelectorState.uploadedUrl = e.target.result;
+            const thumbUpload = document.getElementById('thumb-banner-upload');
+            const phUpload = document.getElementById('thumb-placeholder-upload');
+            if (thumbUpload) {
+                thumbUpload.src = e.target.result;
+                thumbUpload.style.display = 'block';
+            }
+            if (phUpload) {
+                phUpload.style.display = 'none';
+            }
+            selectBannerMode('upload');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function onBannerPositionChanged(pos) {
+    bannerSelectorState.position = pos || 'center';
+    const previewImg = document.getElementById('banner-preview-img');
+    if (previewImg) {
+        previewImg.style.objectPosition = `${pos} center`;
+    }
+}
+
+function updateBannerCards(officialBannerUrl, coverUrl, coverExtraLargeUrl) {
+    bannerSelectorState.officialBannerUrl = officialBannerUrl || '';
+    bannerSelectorState.coverUrl = coverUrl || '';
+    bannerSelectorState.coverExtraLargeUrl = coverExtraLargeUrl || coverUrl || '';
+
+    // Card 1: Banner Oficial
+    const thumbOfficial = document.getElementById('thumb-banner-official');
+    const phOfficial = document.getElementById('thumb-placeholder-official');
+    const missingMsg = document.getElementById('banner-official-missing-msg');
+    const cardOfficial = document.getElementById('card-banner-official');
+
+    if (officialBannerUrl) {
+        thumbOfficial.src = officialBannerUrl;
+        thumbOfficial.style.display = 'block';
+        phOfficial.style.display = 'none';
+        missingMsg.style.display = 'none';
+        cardOfficial.classList.remove('disabled');
+    } else {
+        thumbOfficial.style.display = 'none';
+        phOfficial.style.display = 'block';
+        phOfficial.innerHTML = '<span style="color: var(--admin-yellow);">Sem banner horizontal oficial</span>';
+        missingMsg.style.display = 'block';
+    }
+
+    // Card 2: Capa
+    const thumbCover = document.getElementById('thumb-banner-cover');
+    const phCover = document.getElementById('thumb-placeholder-cover');
+    const displayCover = bannerSelectorState.coverExtraLargeUrl || bannerSelectorState.coverUrl;
+
+    if (displayCover) {
+        thumbCover.src = displayCover;
+        thumbCover.style.display = 'block';
+        phCover.style.display = 'none';
+    } else {
+        thumbCover.style.display = 'none';
+        phCover.style.display = 'block';
+    }
+
+    // Se tiver banner oficial, seleciona opção 1; caso contrário, aviso discreto e seleciona opção 2
+    if (officialBannerUrl) {
+        selectBannerMode('official');
+    } else if (displayCover) {
+        selectBannerMode('cover');
+    }
+}
+
+function onCustomBannerUrlInput(val) {
+    bannerSelectorState.customUrl = val.trim();
+    const thumbCustom = document.getElementById('thumb-banner-custom');
+    const phCustom = document.getElementById('thumb-placeholder-custom');
+
+    if (val.trim()) {
+        thumbCustom.src = val.trim();
+        thumbCustom.style.display = 'block';
+        phCustom.style.display = 'none';
+    } else {
+        thumbCustom.style.display = 'none';
+        phCustom.style.display = 'block';
+    }
+
+    if (bannerSelectorState.mode === 'custom') {
+        const hiddenField = document.getElementById('field-banner-image');
+        if (hiddenField) {
+            hiddenField.value = val.trim();
+        }
+        updateBannerPreview(val.trim(), 'custom', false);
+    }
+}
+
+function updateBannerPreview(url, mode, isCover) {
+    const previewImg = document.getElementById('banner-preview-img');
+    const previewOverlay = document.getElementById('banner-preview-content');
+    const previewEmpty = document.getElementById('banner-preview-empty');
+    const titleEl = document.getElementById('banner-preview-title');
+    const modeIconEl = document.getElementById('banner-preview-mode-icon');
+    const modeTextEl = document.getElementById('banner-preview-mode-text');
+    const statusBadge = document.getElementById('banner-selected-status-badge');
+
+    // Atualiza título do mangá no preview
+    const titleInput = document.getElementById('field-title');
+    if (titleEl) {
+        titleEl.textContent = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : 'Título do Mangá';
+    }
+
+    if (!url) {
+        if (previewImg) previewImg.style.display = 'none';
+        if (previewOverlay) previewOverlay.style.display = 'none';
+        if (previewEmpty) previewEmpty.style.display = 'flex';
+        if (statusBadge) {
+            statusBadge.textContent = 'Nenhum Banner';
+            statusBadge.className = 'badge banner-badge-custom';
+        }
+        return;
+    }
+
+    if (previewImg) {
+        previewImg.src = url;
+        previewImg.style.display = 'block';
+        const currentPos = document.getElementById('field-banner-position') ? document.getElementById('field-banner-position').value : (bannerSelectorState.position || 'center');
+        previewImg.style.objectPosition = `${currentPos} center`;
+
+        if (isCover) {
+            previewImg.className = 'banner-preview-image cover-mode';
+            if (modeIconEl) modeIconEl.textContent = '🖼️';
+            if (modeTextEl) modeTextEl.textContent = 'Modo: Capa Vertical com Desfoque Cinemático (4px)';
+            if (statusBadge) {
+                statusBadge.textContent = 'Capa em Alta Resolução (Desfoque)';
+                statusBadge.className = 'badge banner-badge-cover';
+            }
+        } else {
+            previewImg.className = 'banner-preview-image official-mode';
+            if (modeIconEl) modeIconEl.textContent = '✨';
+            if (modeTextEl) modeTextEl.textContent = mode === 'custom' ? 'Modo: Artwork Horizontal Personalizada (1.5px)' : (mode === 'upload' ? 'Modo: Banner Local Enviado' : 'Modo: Banner Horizontal Oficial (1.5px)');
+            if (statusBadge) {
+                statusBadge.textContent = mode === 'custom' ? 'Banner Personalizado' : (mode === 'upload' ? 'Banner Local' : 'Banner Oficial AniList');
+                statusBadge.className = 'badge banner-badge-official';
+            }
+        }
+    }
+
+    if (previewOverlay) previewOverlay.style.display = 'flex';
+    if (previewEmpty) previewEmpty.style.display = 'none';
+}
+
+// Escuta mudanças de título e capa digitadas manualmente
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.getElementById('field-title');
+    if (titleInput) {
+        titleInput.addEventListener('input', function() {
+            const previewTitle = document.getElementById('banner-preview-title');
+            if (previewTitle) {
+                previewTitle.textContent = this.value.trim() || 'Título do Mangá';
+            }
+        });
+    }
+
+    const coverInput = document.getElementById('field-cover');
+    if (coverInput) {
+        coverInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            bannerSelectorState.coverUrl = val;
+            const thumbCover = document.getElementById('thumb-banner-cover');
+            const phCover = document.getElementById('thumb-placeholder-cover');
+            if (val) {
+                if (thumbCover) { thumbCover.src = val; thumbCover.style.display = 'block'; }
+                if (phCover) phCover.style.display = 'none';
+            }
+            if (bannerSelectorState.mode === 'cover') {
+                const hiddenField = document.getElementById('field-banner-image');
+                if (hiddenField) hiddenField.value = val;
+                updateBannerPreview(val, 'cover', true);
+            }
+        });
+    }
+});
+</script>

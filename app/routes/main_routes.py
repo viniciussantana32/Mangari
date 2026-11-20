@@ -52,10 +52,16 @@ def api_search():
     return jsonify(results)
 
 
+@main_bp.route('/mangas')
+def mangas_redirect():
+    # Suporte amigável para /mangas redirecionando com query strings intactas
+    return redirect(url_for('manga.catalog', **request.args))
+
+
 @main_bp.route('/')
 def index():
-    popular_manga, popular_error = get_popular_manga(per_page=8)
-    recent_manga, recent_error = get_recent_manga(per_page=8)
+    popular_manga, popular_error = get_popular_manga(per_page=30)
+    recent_manga, recent_error = get_recent_manga(per_page=30)
 
     # Buscar até 5 destaques
     featured_items = []

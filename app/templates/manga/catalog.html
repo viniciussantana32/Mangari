@@ -31,9 +31,18 @@
     <p class="section-message">{% if query %}Nenhum resultado encontrado para “{{ query }}”.{% else %}Nenhum mangá retornado no momento.{% endif %}</p>
 {% endif %}
 
-<div class="card-grid">
+<div class="card-grid" data-load-more-grid="catalog">
     {% for item in results %}
         {% include 'manga/_card.html' %}
     {% endfor %}
 </div>
+
+{% if results|length > 10 %}
+<div class="load-more-container">
+    <button type="button" class="btn-load-more" data-target-grid="catalog" data-batch-size="10">
+        <span class="btn-load-more-text">Mostrar mais</span>
+        <span class="btn-load-more-icon" aria-hidden="true">↓</span>
+    </button>
+</div>
+{% endif %}
 {% endblock %}

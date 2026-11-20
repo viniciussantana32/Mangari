@@ -325,4 +325,75 @@ document.addEventListener('DOMContentLoaded', function () {
         // Inicia rotação automática
         startAutoplay();
     }
+
+    // ==========================================
+    // Funcionalidade "Mostrar mais" nos Grids
+    // ==========================================
+    const loadMoreButtons = document.querySelectorAll('.btn-load-more');
+
+    loadMoreButtons.forEach((btn) => {
+        const targetGridId = btn.getAttribute('data-target-grid');
+        const grid = document.querySelector(`[data-load-more-grid="${targetGridId}"]`);
+        if (!grid) return;
+
+        const batchSize = parseInt(btn.getAttribute('data-batch-size') || '10', 10);
+        const cards = Array.from(grid.querySelectorAll('.manga-card'));
+        const totalCards = cards.length;
+
+        // Se total for menor ou igual à primeira página, esconde o botão
+        if (totalCards <= batchSize) {
+            btn.closest('.load-more-container').style.display = 'none';
+            return;
+        }
+
+        let currentlyShown = batchSize;
+
+        // Oculta inicialmente os cards além do limite inicial
+        cards.forEach((card, index) => {
+            if (index >= batchSize) {
+                card.classList.add('manga-card-hidden');
+            }
+        });
+
+        function updateButtonState() {
+            const btnText = btn.querySelector('.btn-load-more-text');
+            if (btnText) {
+                btnText.textContent = `Mostrar mais (${currentlyShown} de ${totalCards})`;
+            }
+            if (currentlyShown >= totalCards) {
+                btn.closest('.load-more-container').style.display = 'none';
+            }
+        }
+
+        updateButtonState();
+
+        btn.addEventListener('click', () => {
+            const nextLimit = Math.min(currentlyShown + batchSize, totalCards);
+            for (let i = currentlyShown; i < nextLimit; i++) {
+                if (cards[i]) {
+                    cards[i].classList.remove('manga-card-hidden');
+                    cards[i].classList.add('is-revealed');
+                }
+            }
+            currentlyShown = nextLimit;
+            updateButtonState();
+        });
+    });
+
+    // ==========================================
+    // Rolagem horizontal suave com roda do mouse (Gêneros)
+    // ==========================================
+    const genreWrappers = document.querySelectorAll('.genre-pills-wrapper');
+    genreWrappers.forEach((wrapper) => {
+        wrapper.addEventListener('wheel', (evt) => {
+            // Se a rolagem for predominantemente vertical (deltaY), redireciona suavemente para horizontal
+            if (Math.abs(evt.deltaY) > Math.abs(evt.deltaX)) {
+                evt.preventDefault();
+                wrapper.scrollBy({
+                    left: evt.deltaY * 1.5,
+                    behavior: 'smooth'
+                });
+            }
+        }, { passive: false });
+    });
 });

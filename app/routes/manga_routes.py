@@ -36,6 +36,7 @@ GENRE_MAP = [
 
 
 @manga_bp.route('', methods=['GET'])
+@manga_bp.route('/', methods=['GET'])
 def catalog():
     query = request.args.get('q', '').strip()
     selected_genre = request.args.get('genre', '').strip()
@@ -43,9 +44,9 @@ def catalog():
     if query:
         results, error = get_manga_search_results(query, genre=selected_genre or None)
     elif selected_genre:
-        results, error = get_popular_manga(genre=selected_genre)
+        results, error = get_popular_manga(genre=selected_genre, per_page=40)
     else:
-        results, error = get_popular_manga()
+        results, error = get_popular_manga(per_page=40)
 
     # Mangás cadastrados localmente visíveis (com filtro por gênero se houver)
     local_query = Manga.query.filter_by(is_visible=True)

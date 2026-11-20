@@ -94,7 +94,7 @@
 
 <!-- Seção da Lista Completa de Capítulos (Disponíveis vs. Indisponíveis) -->
 <section class="chapters-section" id="chapters-section" style="margin-top: 3.5rem; padding-top: 2rem; border-top: 1px solid var(--color-border);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="chapters-section-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
             <h2 style="font-size: 1.4rem; color: var(--color-text); margin: 0 0 0.35rem 0;">
                 Capítulos da Obra
@@ -111,7 +111,7 @@
         </div>
 
         <!-- Controles de Filtro e Ordenação -->
-        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+        <div class="chapter-controls-row" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
             <div class="chapter-filter-pills" style="display: flex; gap: 0.4rem; background: var(--color-surface); padding: 0.3rem; border-radius: 8px; border: 1px solid var(--color-border);">
                 <button type="button" class="chapter-filter-btn active" data-filter="all">
                     Todos ({{ unified_chapters|length }})
@@ -211,7 +211,7 @@
 
     <!-- Formulário para envio de comentário -->
     {% if current_user.is_authenticated %}
-        <form method="POST" action="{{ url_for('manga.add_comment', manga_id=current_anilist_id) }}" style="margin-bottom: 2.5rem; background: var(--color-card); padding: 1.5rem; border-radius: var(--radius-card); border: 1px solid var(--color-border);">
+        <form class="comment-form" method="POST" action="{{ url_for('manga.add_comment', manga_id=current_anilist_id) }}" style="margin-bottom: 2.5rem; background: var(--color-card); padding: 1.5rem; border-radius: var(--radius-card); border: 1px solid var(--color-border);">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div style="margin-bottom: 1.25rem;">
                 <label for="comment-content" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--color-muted);">Deixe sua opinião sobre esta obra:</label>
@@ -230,8 +230,8 @@
     <div class="comments-list" style="display: flex; flex-direction: column; gap: 1.25rem;">
         {% for comment in comments %}
             <article class="comment-card" style="background: var(--color-card); padding: 1.25rem 1.5rem; border-radius: var(--radius-card); border: 1px solid var(--color-border);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="comment-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div class="comment-user-meta" style="display: flex; align-items: center; gap: 0.75rem;">
                         <span style="font-weight: 700; color: var(--color-text); font-size: 0.95rem;">{{ comment.user.name }}</span>
                         {% if comment.user.is_admin %}
                             <span style="background: rgba(255, 117, 24, 0.2); color: var(--color-orange); font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">Admin</span>
@@ -239,7 +239,7 @@
                         <span style="color: var(--color-muted); font-size: 0.8rem;">{{ comment.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="comment-action-links" style="display: flex; align-items: center; gap: 0.75rem;">
                         {% if current_user.is_authenticated and (comment.user_id == current_user.id or current_user.is_admin) %}
                             <form method="POST" action="{{ url_for('manga.delete_comment_user', comment_id=comment.id) }}" onsubmit="return confirm('Deseja excluir seu comentário?');" style="display: inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

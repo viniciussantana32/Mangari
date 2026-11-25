@@ -115,6 +115,10 @@
                     Original
                 </button>
             </div>
+            <a href="{{ pdf_url }}" target="_blank" class="reader-opt-btn reader-pdf-direct-link" title="Abrir arquivo PDF original em nova aba" aria-label="Abrir PDF original em nova aba">
+                <span class="pdf-link-icon" aria-hidden="true">📄</span>
+                <span>PDF</span>
+            </a>
             <button type="button" class="reader-opt-btn icon-btn" id="fullscreen-btn" title="Alternar tela cheia (F)" aria-label="Tela cheia">
                 ⛶
             </button>
@@ -131,7 +135,7 @@
     </div>
 
     <!-- Mensagem de fallback caso o PDF falhe ou JavaScript esteja sem suporte -->
-    <div id="pdf-fallback-state" class="pdf-fallback-state" hidden>
+    <div id="pdf-fallback-state" class="pdf-fallback-state is-hidden" hidden style="display: none;">
         <p>Não foi possível carregar a renderização do PDF diretamente.</p>
         <a href="{{ pdf_url }}" target="_blank" class="button primary">Abrir PDF diretamente</a>
     </div>

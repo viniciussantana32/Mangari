@@ -45,6 +45,20 @@ body:has(.manga-reader) .main-content {
     padding-bottom: 4rem;
 }
 
+/* Modo Tela Cheia (:fullscreen) para contêiner principal */
+.manga-reader:fullscreen,
+.manga-reader:-webkit-full-screen,
+.manga-reader.is-fullscreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background-color: #0b0b0e !important;
+    padding-bottom: 5rem !important;
+    box-sizing: border-box !important;
+}
+
 /* ==========================================================================
    Barra de Progresso Fixa no Topo (#FF7518)
    ========================================================================== */
@@ -356,6 +370,7 @@ body:has(.manga-reader) .main-content {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     border-radius: 4px;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .reader-page-item img,
@@ -363,10 +378,32 @@ body:has(.manga-reader) .main-content {
     display: block;
     width: 100%;
     height: auto;
+    max-height: none;
     max-width: 100%;
     object-fit: contain;
     user-select: none;
     -webkit-user-select: none;
+    flex-shrink: 0;
+}
+
+/* Garante que em Tela Cheia no modo vertical nada seja comprimido verticalmente */
+.manga-reader:not(.single-page-mode):fullscreen .reader-page-item,
+.manga-reader:not(.single-page-mode):-webkit-full-screen .reader-page-item,
+.manga-reader:not(.single-page-mode).is-fullscreen .reader-page-item {
+    flex-shrink: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.manga-reader:not(.single-page-mode):fullscreen .reader-page-item img,
+.manga-reader:not(.single-page-mode):fullscreen .reader-page-item canvas,
+.manga-reader:not(.single-page-mode):-webkit-full-screen .reader-page-item img,
+.manga-reader:not(.single-page-mode):-webkit-full-screen .reader-page-item canvas,
+.manga-reader:not(.single-page-mode).is-fullscreen .reader-page-item img,
+.manga-reader:not(.single-page-mode).is-fullscreen .reader-page-item canvas {
+    height: auto !important;
+    max-height: none !important;
+    flex-shrink: 0 !important;
 }
 
 .reader-page-fallback {
@@ -411,6 +448,7 @@ body:has(.manga-reader) .main-content {
     width: auto;
     max-width: min(100%, var(--reader-max-width));
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .manga-reader.single-page-mode .reader-page-item img,
@@ -422,6 +460,29 @@ body:has(.manga-reader) .main-content {
 
 .manga-reader.single-page-mode .reader-page-item[hidden] {
     display: none !important;
+}
+
+/* Modo Página Única em Tela Cheia: centraliza página perfeitamente sem cortar */
+.manga-reader.single-page-mode:fullscreen .reader-pages-container,
+.manga-reader.single-page-mode:-webkit-full-screen .reader-pages-container,
+.manga-reader.single-page-mode.is-fullscreen .reader-pages-container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: calc(100vh - 110px) !important;
+    padding: 0.5rem !important;
+}
+
+.manga-reader.single-page-mode:fullscreen .reader-page-item img,
+.manga-reader.single-page-mode:fullscreen .reader-page-item canvas,
+.manga-reader.single-page-mode:-webkit-full-screen .reader-page-item img,
+.manga-reader.single-page-mode:-webkit-full-screen .reader-page-item canvas,
+.manga-reader.single-page-mode.is-fullscreen .reader-page-item img,
+.manga-reader.single-page-mode.is-fullscreen .reader-page-item canvas {
+    max-height: calc(100vh - 110px) !important;
+    width: auto !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
 }
 
 /* ==========================================================================
@@ -532,6 +593,32 @@ body:has(.manga-reader) .main-content {
     padding: 4rem 1.5rem;
     color: var(--reader-muted);
     text-align: center;
+}
+
+.pdf-fallback-state[hidden],
+.pdf-fallback-state.is-hidden {
+    display: none !important;
+}
+
+.reader-pdf-direct-link {
+    text-decoration: none;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    color: #A1A1AA;
+    background: #19191F;
+    border: 1px solid #292930;
+    transition: all 150ms ease;
+}
+
+.reader-pdf-direct-link:hover {
+    color: #FF7518 !important;
+    border-color: #FF7518 !important;
+    background: rgba(255, 117, 24, 0.1) !important;
+}
+
+.pdf-link-icon {
+    font-size: 0.85rem;
+    line-height: 1;
 }
 
 .pdf-spinner {

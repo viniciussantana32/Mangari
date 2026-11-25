@@ -366,6 +366,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     fullscreenBtn?.addEventListener('click', toggleFullscreen);
 
+    // Sincroniza a classe .is-fullscreen no leitor com o evento fullscreenchange
+    document.addEventListener('fullscreenchange', () => {
+        const isFs = document.fullscreenElement === reader;
+        reader.classList.toggle('is-fullscreen', isFs);
+        if (fullscreenBtn) {
+            fullscreenBtn.classList.toggle('active', isFs);
+            fullscreenBtn.setAttribute('aria-pressed', String(isFs));
+        }
+    });
+
     // =========================================================================
     // 7. Eventos dos Botões de Navegação e Opções
     // =========================================================================
@@ -445,9 +455,27 @@ document.addEventListener('DOMContentLoaded', function () {
         const loadingState = document.getElementById('pdf-loading-state');
         const fallbackState = document.getElementById('pdf-fallback-state');
 
+        // Garante que o fallback comece sempre oculto
+        if (fallbackState) {
+            fallbackState.hidden = true;
+            fallbackState.classList.add('is-hidden');
+            fallbackState.style.display = 'none';
+        }
+
+        const showPdfFallback = () => {
+            if (loadingState) {
+                loadingState.hidden = true;
+                loadingState.style.display = 'none';
+            }
+            if (fallbackState) {
+                fallbackState.hidden = false;
+                fallbackState.classList.remove('is-hidden');
+                fallbackState.style.display = 'flex';
+            }
+        };
+
         if (!window.pdfjsLib) {
-            if (loadingState) loadingState.hidden = true;
-            if (fallbackState) fallbackState.hidden = false;
+            showPdfFallback();
             return;
         }
 
@@ -462,6 +490,11 @@ document.addEventListener('DOMContentLoaded', function () {
             reader.dataset.pageCount = totalPages;
 
             if (loadingState) loadingState.remove();
+            if (fallbackState) {
+                fallbackState.hidden = true;
+                fallbackState.classList.add('is-hidden');
+                fallbackState.style.display = 'none';
+            }
 
             // Criar elementos de página com <canvas> para cada página do PDF
             pagesContainer.innerHTML = '';
@@ -493,8 +526,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } catch (err) {
             console.error('Falha ao carregar o PDF com PDF.js:', err);
-            if (loadingState) loadingState.hidden = true;
-            if (fallbackState) fallbackState.hidden = false;
+            showPdfFallback();
         }
     };
 
